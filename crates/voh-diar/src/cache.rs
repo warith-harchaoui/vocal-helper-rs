@@ -410,7 +410,7 @@ mod tests {
             ..small()
         };
         let slots: Vec<Slot> = (0..9).map(|i| slot(i as f32, vec![0.9, 0.0])).collect();
-        let out = compress_cache(&slots, &schedule, &vec![0.0; 4]);
+        let out = compress_cache(&slots, &schedule, &[0.0; 4]);
         assert_eq!(out.len(), 3);
     }
 
@@ -418,7 +418,7 @@ mod tests {
     fn un_cache_qui_ne_deborde_pas_est_rendu_tel_quel() {
         let schedule = small();
         let slots: Vec<Slot> = (0..3).map(|i| slot(i as f32, vec![0.9, 0.0])).collect();
-        assert_eq!(compress_cache(&slots, &schedule, &vec![0.0; 4]), slots);
+        assert_eq!(compress_cache(&slots, &schedule, &[0.0; 4]), slots);
     }
 
     #[test]
@@ -435,7 +435,7 @@ mod tests {
             slot(1.0, vec![0.9, 0.0]),
             slot(2.0, vec![0.0, 0.9]),
         ];
-        let out = compress_cache(&slots, &schedule, &vec![0.0; 4]);
+        let out = compress_cache(&slots, &schedule, &[0.0; 4]);
         let loudest: Vec<usize> = out
             .iter()
             .map(|s| {
@@ -465,7 +465,7 @@ mod tests {
             ..small()
         };
         let slots: Vec<Slot> = (0..6).map(|i| slot(i as f32, vec![0.9])).collect();
-        let out = compress_cache(&slots, &schedule, &vec![0.0; 4]);
+        let out = compress_cache(&slots, &schedule, &[0.0; 4]);
         let firsts: Vec<f32> = out.iter().map(|s| s.embedding[0]).collect();
         let mut sorted = firsts.clone();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -504,7 +504,7 @@ mod tests {
         let mut state = StreamingState::new();
         let chunk = vec![vec![1.0_f32; 4], vec![1.0; 4]];
         let predictions = vec![0.9_f32; 2 * 2];
-        let out = streaming_update(&mut state, &chunk, &predictions, &schedule, &vec![0.0; 4]);
+        let out = streaming_update(&mut state, &chunk, &predictions, &schedule, &[0.0; 4]);
         assert_eq!(state.fifo.len(), 2);
         assert!(state.spkcache.is_empty());
         assert_eq!(out.len(), 4);
@@ -557,7 +557,7 @@ mod tests {
         let mut state = StreamingState::new();
         let chunk = vec![vec![1.0_f32; 4]];
         let predictions = vec![0.1_f32, 0.2];
-        let out = streaming_update(&mut state, &chunk, &predictions, &schedule, &vec![0.0; 4]);
+        let out = streaming_update(&mut state, &chunk, &predictions, &schedule, &[0.0; 4]);
         assert_eq!(out, vec![0.1, 0.2]);
     }
 
@@ -567,7 +567,7 @@ mod tests {
         let mut state = StreamingState::new();
         let chunk = vec![vec![1.0_f32; 4], vec![2.0; 4]];
         let predictions = vec![0.9_f32; 4];
-        streaming_update(&mut state, &chunk, &predictions, &schedule, &vec![0.0; 4]);
+        streaming_update(&mut state, &chunk, &predictions, &schedule, &[0.0; 4]);
         assert_eq!(state.fifo_flat(4).len(), 2 * 4);
         assert_eq!(state.spkcache_flat(4).len(), 0);
     }
