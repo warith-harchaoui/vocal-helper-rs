@@ -9,7 +9,7 @@
 # scientifique. S'y ajoutent un binaire unique par plateforme, aucune résolution
 # de dépendances à l'installation, et aucun interpréteur à démarrer.
 [workspace]
-members = ["crates/voh-accel", "crates/voh-mel"]
+members = ["crates/voh-accel", "crates/voh-diar", "crates/voh-mel"]
 resolver = "2"
 
 [workspace.package]
