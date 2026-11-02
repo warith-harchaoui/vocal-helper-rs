@@ -91,6 +91,20 @@ hardcoded order makes.
 The policy is pure — no model, no network, no ONNX — so it is entirely testable, and the runtime
 binding lives behind a feature flag.
 
+**And an explicit provider always wins.** The ladder is: a provider named by the caller, then
+`VOCAL_HELPER_PROVIDER`, then the measured verdict, then the head of the platform's candidate
+list when nothing could be measured. A name is taken exactly as given — never measured, never
+compared, never quietly replaced, because that is the whole point of naming it. A name that
+matches nothing is an **error**, not a fallback: falling back would make a typo undetectable,
+and you would believe you were running on CUDA while running on the CPU. The decision carries
+its own authority (`Explicit`, `Measured`, `Preference`) so a log never implies a measurement
+that did not happen.
+
+```sh
+VOCAL_HELPER_PROVIDER=coreml   # pins this machine, no code change
+```
+
+
 ## What the numbers above come from
 
 The measurement campaign behind these choices is written up in vocal-helper's

@@ -95,6 +95,20 @@ qu'un ordre codé en dur commet.
 La politique est pure — pas de modèle, pas de réseau, pas d'ONNX — donc entièrement testable, et la
 liaison au runtime vit derrière un drapeau de compilation.
 
+**Et un moteur nommé gagne toujours.** L'échelle est : le moteur que l'appelant nomme, puis
+`VOCAL_HELPER_PROVIDER`, puis le verdict mesuré, puis la tête de l'ordre de départ de la
+plateforme quand rien n'a pu être mesuré. Un nom est pris tel quel — jamais mesuré, jamais
+comparé, jamais remplacé en silence, puisque c'est tout l'intérêt de le nommer. Un nom qui ne
+correspond à rien est une **erreur**, pas un repli : un repli rendrait une faute de frappe
+indétectable, et on croirait tourner sur CUDA en tournant sur le CPU. La décision porte son
+autorité (`Explicit`, `Measured`, `Preference`), pour qu'un journal ne laisse jamais croire à
+une mesure qui n'a pas eu lieu.
+
+```sh
+VOCAL_HELPER_PROVIDER=coreml   # épingle cette machine, sans toucher au code
+```
+
+
 ## D'où viennent ces chiffres
 
 La campagne de mesure derrière ces choix est consignée dans
