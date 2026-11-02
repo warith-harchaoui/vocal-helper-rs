@@ -16,7 +16,7 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
-use voh_diar::{
+use vocal_helper_rs::{
     boost_top_scores, compress_cache, disable_low_scores, log_pred_scores,
     segments_from_probabilities, streaming_update, Schedule, Slot, StreamingState,
 };
@@ -29,7 +29,7 @@ use voh_diar::{
 const TOLERANCE: f64 = 1e-5;
 
 fn reference() -> HashMap<String, serde_json::Value> {
-    serde_json::from_str(include_str!("fixtures/python_reference.json"))
+    serde_json::from_str(include_str!("fixtures/diar_reference.json"))
         .expect("la référence doit être lisible")
 }
 

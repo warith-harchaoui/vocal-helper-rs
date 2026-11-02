@@ -17,7 +17,7 @@
 
 use std::collections::HashMap;
 
-use voh_mel::{log_mel, MelSettings};
+use vocal_helper_rs::{log_mel, MelSettings};
 
 #[derive(serde::Deserialize)]
 struct Case {
@@ -35,7 +35,7 @@ struct Case {
 const TOLERANCE: f32 = 1e-3;
 
 fn reference() -> HashMap<String, Case> {
-    let raw = include_str!("fixtures/python_reference.json");
+    let raw = include_str!("fixtures/mel_reference.json");
     serde_json::from_str(raw).expect("la référence doit être lisible")
 }
 

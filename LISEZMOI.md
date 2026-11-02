@@ -1,9 +1,10 @@
-# vocal-helper-rs
+# Vocal Helper (Rust)
 
-Transcription et diarisation de la parole en Rust — les mêmes moteurs que
-[vocal-helper](https://github.com/warith-harchaoui/vocal-helper), là où Python ne va pas.
+[🇫🇷](https://github.com/warith-harchaoui/vocal-helper-rs/blob/master/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/vocal-helper-rs/blob/master/README.md)
 
-*English: [README.md](README.md).*
+[![crates.io](https://img.shields.io/crates/v/vocal-helper-rs.svg)](https://crates.io/crates/vocal-helper-rs) [![Licence : BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
+
+Réécriture en Rust du chemin de diarisation gratuit et local de [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper) — Nemotron 3 Diarization par son graphe ONNX. Pas un portage ligne à ligne : du Rust idiomatique de bout en bout.
 
 ## Pourquoi ce dépôt existe, dit honnêtement
 
@@ -29,25 +30,27 @@ une empreinte mémoire modeste pour un service qui écoute en arrière-plan.
 
 Même moteur, mêmes nombres, même vitesse — quelque part où Python n'accède pas.
 
-## État
+## Portée
 
-Deux caisses, avec du code réel et des tests. Les autres sont nommées dans le plan ci-dessous et ne
-sont pas écrites ; ce fichier ne prétendra pas le contraire.
+Tout ce qui vit **autour** du graphe est là, et c'est l'essentiel du travail. Ce qui n'est pas
+encore écrit est nommé comme tel plutôt que sous-entendu.
 
-| caisse | ce qu'elle fait | état |
+| module | ce qu'il fait | état |
 |---|---|---|
-| `voh-mel` | le front-end log-mel que le graphe de diarisation attend | **fait**, vérifié contre le Python |
-| `voh-accel` | choisir un moteur d'exécution en le mesurant sur l'appareil | **fait** |
-| `voh-diar` | Nemotron en flux : cache de locuteurs, file, session ONNX | prévu |
-| `voh-cloud` | Gladia et pyannoteAI, en lot et en direct | prévu |
-| `voh-wallet` | mémoïsation SQLite, pour qu'un appel payant ne soit payé qu'une fois | prévu |
+| `mel` | le front-end log-mel que le graphe attend, à la trame près | **fait**, parité prouvée |
+| `cache` | la tenue du cache de locuteurs et de la file d'un pas à l'autre | **fait**, parité prouvée |
+| `schedule` | le calendrier de flux et les deux plafonds qui le bornent | **fait**, parité prouvée |
+| `segments` | des probabilités par trame aux tours de parole | **fait**, parité prouvée |
+| `accel` | choisir un moteur d'exécution en le mesurant sur l'appareil | **fait** |
+| liaison ONNX Runtime | piloter le graphe lui-même, par `ort` | pas écrit |
+| chemins payants | Gladia et pyannoteAI, en lot et en direct | pas écrits |
 
 ```sh
-cargo test          # 24 tests, plus les doctests
+cargo test                                  # 73 tests, parité comprise
 cargo clippy --all-targets -- -D warnings
 ```
 
-## `voh-mel` : un portage ne vaut que sa parité
+## Un portage ne vaut que sa parité
 
 Le graphe ne prend pas de l'audio, il prend des trames log-mel. Sa configuration en donne la
 charpente — 16 kHz, fenêtre de 400 échantillons, saut de 160, transformée sur 512, pré-accentuation
@@ -62,7 +65,7 @@ comparant à l'extracteur du modèle**, pas devinés, et deux comptent :
 
 Les deux chemins alimentent le **même graphe** : s'ils divergent, le chemin mobile fabrique
 silencieusement d'autres probabilités, et aucun test unitaire de chaque côté ne le verrait.
-`tests/parite_python.rs` compare donc à une référence produite par
+`tests/parite_mel.rs` compare donc à une référence produite par
 `vocal_helper.nemotron.log_mel` sur quatre signaux choisis pour ce qui peut différer : un bruit
 riche, un ton pur sur la charnière de l'échelle Slaney, deux tons éloignés pour détecter une fuite
 entre filtres voisins, et du silence, où le plancher doit être atteint exactement. L'accord est à
@@ -71,7 +74,7 @@ entre filtres voisins, et du silence, où le plancher doit être atteint exactem
 Cela fait une chaîne de deux maillons : extracteur officiel → Python (0,006 d'écart moyen) → Rust
 (≤ 1e-3).
 
-## `voh-accel` : mesurer l'appareil, ne pas croire le raisonnement
+## Accélérations : mesurer l'appareil, ne pas croire le raisonnement
 
 Le raisonnement évident sur les accélérateurs est faux, et on l'a payé. ONNX Runtime n'a pas de
 moteur Metal, donc sur Apple Silicon l'accélération passe par CoreML, et le mettre en tête semblait
@@ -100,7 +103,15 @@ de vocal-helper, impasses comprises : quatre paramétrages de seuil réfutés, l
 centroïde fermé, et la découverte que la référence d'AMI ne peut pas arbitrer parce qu'elle est
 transcrite sur les micros-casques alors qu'on donne au moteur le mixage de salle.
 
+## Voisinage
+
+Fait partie du même outillage local-first que [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper) (Python), [`audio-helper-rs`](https://github.com/warith-harchaoui/audio-helper-rs), [`capture-helper-rs`](https://github.com/warith-harchaoui/capture-helper-rs), [`podcast-helper-rs`](https://github.com/warith-harchaoui/podcast-helper-rs), [`youtube-helper-rs`](https://github.com/warith-harchaoui/youtube-helper-rs), et la suite [AI Helpers](https://github.com/warith-harchaoui/ai-helpers). Réécriture indépendante, pas une liaison.
+
 ## Licence
 
-MIT. Les poids de modèle qu'elle charge ne sont pas les nôtres et portent leurs propres termes —
-Nemotron 3 Diarization est à NVIDIA, sous OpenMDW License 1.1.
+BSD-3-Clause, voir [LICENSE](LICENSE). Les poids de modèle qu'elle charge ne sont pas les nôtres et
+portent leurs propres termes — Nemotron 3 Diarization est à NVIDIA, sous OpenMDW License 1.1.
+
+## Auteur
+
+[Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui)

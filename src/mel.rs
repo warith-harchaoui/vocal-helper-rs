@@ -31,7 +31,12 @@ use thiserror::Error;
 pub enum MelError {
     /// Rééchantillonner sans le dire produirait des trames plausibles et fausses.
     #[error("le modèle veut {expected} Hz, reçu {received} Hz : rééchantillonner d'abord")]
-    SampleRate { expected: u32, received: u32 },
+    SampleRate {
+        /// Ce que le modèle veut : 16 kHz.
+        expected: u32,
+        /// Ce qu'on lui a donné.
+        received: u32,
+    },
 }
 
 /// Les paramètres du front-end, tels que la configuration du modèle les donne.

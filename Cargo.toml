@@ -1,27 +1,36 @@
-# vocal-helper-rs — le même moteur que vocal-helper, là où Python ne va pas.
+# Portage Rust de https://github.com/warith-harchaoui/vocal-helper (Python).
 #
-# Ce n'est pas un portage pour aller plus vite : mesuré, 99,8 % du temps de la
-# diarisation est déjà dans ONNX Runtime, donc en C++, et la caisse `ort` appelle
-# la même bibliothèque. Le plafond d'un gain de facteur temps réel est de 0,2 %.
+# Portée v0.1 : le chemin de diarisation en flux par Nemotron 3 — front-end
+# log-mel, tenue du cache de locuteurs et de la file, calendrier et ses deux
+# plafonds, choix du moteur d'exécution. La liaison à ONNX Runtime et les
+# chemins payants (Gladia, pyannoteAI) ne sont pas encore écrits ; le README le
+# dit plutôt que de laisser croire.
 #
-# C'est un portage pour aller AILLEURS. Sur iOS et Android, le chemin Python
-# n'existe pas : on n'y embarque pas raisonnablement CPython et une pile
-# scientifique. S'y ajoutent un binaire unique par plateforme, aucune résolution
-# de dépendances à l'installation, et aucun interpréteur à démarrer.
-[workspace]
-members = ["crates/voh-accel", "crates/voh-diar", "crates/voh-mel"]
-resolver = "2"
-
-[workspace.package]
+# Ce portage ne vise PAS la vitesse, et c'est mesuré : 99,8 % du temps de la
+# diarisation est déjà dans ONNX Runtime, donc en C++, et `ort` appelle la même
+# bibliothèque. Il vise les endroits où Python ne va pas — iOS, Android, un
+# binaire unique par plateforme.
+[package]
+name = "vocal-helper-rs"
 version = "0.1.0"
 edition = "2021"
+# Vérifié et non supposé : `cargo test` passe sur 1.95.0. Le plancher est fixé
+# par `std::iter::repeat_n`, stable depuis 1.82.
 rust-version = "1.82"
-license = "MIT"
+license = "BSD-3-Clause"
+description = "Portage Rust de vocal-helper : diarisation de la parole en flux, sans Python."
 repository = "https://github.com/warith-harchaoui/vocal-helper-rs"
+homepage = "https://deraison.ai/ai-helpers/"
+readme = "README.md"
+keywords = ["diarization", "speech", "onnx", "streaming", "audio"]
+categories = ["multimedia::audio", "science"]
+exclude = ["tests/fixtures/*"]
 
-[workspace.dependencies]
-ndarray = "0.16"
-thiserror = "2.0"
+[dependencies]
+realfft = "3.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-realfft = "3.4"
+thiserror = "2.0"
+
+[dev-dependencies]
+serde_json = "1.0"

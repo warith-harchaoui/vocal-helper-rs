@@ -153,7 +153,7 @@ impl Verdict {
 /// Le plus rapide gagne, même si l'ordre de départ le mettait dernier.
 ///
 /// ```
-/// use voh_accel::{choose, Provider, Timing};
+/// use vocal_helper_rs::{choose, Provider, Timing};
 /// let timings = vec![
 ///     Timing { provider: Provider::CoreMl, real_time_factor: 1.257 },
 ///     Timing { provider: Provider::Cpu, real_time_factor: 0.528 },
@@ -164,7 +164,7 @@ impl Verdict {
 /// Sans aucune mesure, on ne décide pas.
 ///
 /// ```
-/// use voh_accel::choose;
+/// use vocal_helper_rs::choose;
 /// assert_eq!(choose(&[]), None);
 /// ```
 pub fn choose(timings: &[Timing]) -> Option<Provider> {
@@ -189,7 +189,7 @@ pub fn choose(timings: &[Timing]) -> Option<Provider> {
 /// # Exemples
 ///
 /// ```
-/// use voh_accel::holds_live;
+/// use vocal_helper_rs::holds_live;
 /// // Diarisation à 0,528 plus transcription à 0,164 sur le même CPU.
 /// assert!(holds_live(0.528, 0.164));
 /// // La même diarisation sous CoreML, mesurée à 1,257, ne tient pas seule.
