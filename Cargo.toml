@@ -1,0 +1,27 @@
+# vocal-helper-rs — le même moteur que vocal-helper, là où Python ne va pas.
+#
+# Ce n'est pas un portage pour aller plus vite : mesuré, 99,8 % du temps de la
+# diarisation est déjà dans ONNX Runtime, donc en C++, et la caisse `ort` appelle
+# la même bibliothèque. Le plafond d'un gain de facteur temps réel est de 0,2 %.
+#
+# C'est un portage pour aller AILLEURS. Sur iOS et Android, le chemin Python
+# n'existe pas : on n'y embarque pas raisonnablement CPython et une pile
+# scientifique. S'y ajoutent un binaire unique par plateforme, aucune résolution
+# de dépendances à l'installation, et aucun interpréteur à démarrer.
+[workspace]
+members = ["crates/voh-accel", "crates/voh-mel"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT"
+repository = "https://github.com/warith-harchaoui/vocal-helper-rs"
+
+[workspace.dependencies]
+ndarray = "0.16"
+thiserror = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+realfft = "3.4"
