@@ -40,11 +40,13 @@ written yet is named as such rather than implied.
 | `schedule` | the streaming schedule and the two ceilings that bound it | **done**, parity proven |
 | `segments` | per-frame probabilities to speech turns | **done**, parity proven |
 | `accel` | choosing an execution provider by measuring it on the device | **done** |
+| `asr` | Nemotron 3.5 transcription host: NeMo front end, windows, greedy CTC, timed words, speaker/event tags | **done**, parity proven on the real graph's metadata and outputs |
+| `onnx_meta` | reading a graph's `metadata_props` without loading its weights | **done** |
 | ONNX Runtime binding | driving the graph itself, through `ort` | not written |
 | paid paths | Gladia and pyannoteAI, batch and live | not written |
 
 ```sh
-cargo test                                  # 73 tests, parity included
+cargo test                                  # 86 tests, parity included
 cargo clippy --all-targets -- -D warnings
 ```
 

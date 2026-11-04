@@ -42,11 +42,13 @@ encore écrit est nommé comme tel plutôt que sous-entendu.
 | `schedule` | le calendrier de flux et les deux plafonds qui le bornent | **fait**, parité prouvée |
 | `segments` | des probabilités par trame aux tours de parole | **fait**, parité prouvée |
 | `accel` | choisir un moteur d'exécution en le mesurant sur l'appareil | **fait** |
+| `asr` | l'hôte de la transcription Nemotron 3.5 : front-end NeMo, fenêtres, CTC glouton, mots horodatés, balises de locuteur et d'événement | **fait**, parité prouvée sur les métadonnées et les sorties du vrai graphe |
+| `onnx_meta` | lire les `metadata_props` d'un graphe sans charger ses poids | **fait** |
 | liaison ONNX Runtime | piloter le graphe lui-même, par `ort` | pas écrit |
 | chemins payants | Gladia et pyannoteAI, en lot et en direct | pas écrits |
 
 ```sh
-cargo test                                  # 73 tests, parité comprise
+cargo test                                  # 86 tests, parité comprise
 cargo clippy --all-targets -- -D warnings
 ```
 

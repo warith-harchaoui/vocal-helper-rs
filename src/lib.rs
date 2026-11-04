@@ -29,14 +29,21 @@
 //! que les deux alimentent le même graphe et qu'un désaccord produirait
 //! silencieusement d'autres probabilités.
 //!
+//! S'y ajoute l'hôte de la **transcription** Nemotron 3.5 ([`asr`]) : front-end
+//! NeMo, normalisation, plan des fenêtres, décodage CTC et mots horodatés, avec
+//! le lecteur des métadonnées du graphe ([`onnx_meta`]) qui sert aux deux
+//! graphes sans charger leurs poids.
+//!
 //! La liaison à ONNX Runtime et les chemins payants ne sont pas encore écrits.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
 pub mod accel;
+pub mod asr;
 pub mod cache;
 pub mod mel;
+pub mod onnx_meta;
 pub mod schedule;
 pub mod segments;
 
