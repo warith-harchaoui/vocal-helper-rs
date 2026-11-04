@@ -31,6 +31,23 @@ realfft = "3.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
+# La liaison à ONNX Runtime, optionnelle : tout le reste de la caisse se teste
+# sans elle, sur une machine nue. Elle demande Rust 1.92 (le plancher d'`ort`
+# rc.15) ; sans elle, `rust-version` ci-dessus reste le plancher.
+ort = { version = "2.0.0-rc.15", optional = true }
+
+[features]
+default = []
+onnx = ["dep:ort"]
 
 [dev-dependencies]
 serde_json = "1.0"
+hound = "3.5"
+
+[[example]]
+name = "transcribe"
+required-features = ["onnx"]
+
+[[example]]
+name = "diarize"
+required-features = ["onnx"]
