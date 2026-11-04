@@ -41,6 +41,8 @@
 
 pub mod accel;
 pub mod asr;
+#[cfg(feature = "onnx")]
+pub mod asr_session;
 pub mod cache;
 pub mod mel;
 pub mod onnx_meta;
