@@ -44,7 +44,7 @@ encore écrit est nommé comme tel plutôt que sous-entendu.
 | `accel` | choisir un moteur d'exécution en le mesurant sur l'appareil | **fait** |
 | `asr` | l'hôte de la transcription Nemotron 3.5 : front-end NeMo, fenêtres, CTC glouton, mots horodatés, balises de locuteur et d'événement | **fait**, parité prouvée sur les métadonnées et les sorties du vrai graphe |
 | `onnx_meta` | lire les `metadata_props` d'un graphe sans charger ses poids | **fait** |
-| liaison ONNX Runtime | piloter le graphe lui-même, par `ort`, derrière la feature `onnx` | **transcription faite** (`asr_session`, `examples/transcribe.rs` ; 0,86 % de WER d'écart au jumeau Python en int8, RTF 0,15 sur CPU) ; diarisation pas écrite |
+| liaison ONNX Runtime | piloter le graphe lui-même, par `ort`, derrière la feature `onnx` | **transcription faite** (`asr_session`, `examples/transcribe.rs` ; 0,86 % de WER d'écart au jumeau Python en int8, RTF 0,15 sur CPU) ; **diarisation faite** (`diar_session`, `examples/diarize.rs` ; probabilités à 1,7e-6 du jumeau Python sur 3 min d'AMI, compression du cache comprise) |
 | chemins payants | Gladia et pyannoteAI, en lot et en direct | pas écrits |
 
 ```sh

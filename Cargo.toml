@@ -47,3 +47,7 @@ hound = "3.5"
 [[example]]
 name = "transcribe"
 required-features = ["onnx"]
+
+[[example]]
+name = "diarize"
+required-features = ["onnx"]

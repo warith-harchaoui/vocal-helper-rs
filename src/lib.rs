@@ -44,6 +44,8 @@ pub mod asr;
 #[cfg(feature = "onnx")]
 pub mod asr_session;
 pub mod cache;
+#[cfg(feature = "onnx")]
+pub mod diar_session;
 pub mod mel;
 pub mod onnx_meta;
 pub mod schedule;

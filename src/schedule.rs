@@ -100,6 +100,60 @@ impl Default for Schedule {
 }
 
 impl Schedule {
+    /// Lire le calendrier dans les métadonnées du graphe (préfixe `vernacula.diar.`).
+    ///
+    /// Le portage de `NemotronSchedule.from_metadata` : les clés inconnues sont
+    /// ignorées et les absentes gardent leur défaut, pour qu'un export enrichi
+    /// n'empêche pas le chargement. Une valeur illisible garde aussi son défaut.
+    ///
+    /// ```
+    /// # use std::collections::HashMap;
+    /// # use vocal_helper_rs::Schedule;
+    /// let meta = HashMap::from([
+    ///     ("vernacula.diar.fifo_len".to_string(), "64".to_string()),
+    ///     ("vernacula.diar.inconnu".to_string(), "x".to_string()),
+    /// ]);
+    /// assert_eq!(Schedule::from_metadata(&meta).fifo_len, 64);
+    /// ```
+    pub fn from_metadata(meta: &std::collections::HashMap<String, String>) -> Self {
+        let mut s = Self::default();
+        for (key, raw) in meta {
+            let name = key.strip_prefix(META_PREFIX).unwrap_or(key);
+            let int = raw.trim().parse::<usize>().ok();
+            let float = raw.trim().parse::<f64>().ok();
+            match name {
+                "num_speakers" => s.num_speakers = int.unwrap_or(s.num_speakers),
+                "emb_dim" => s.emb_dim = int.unwrap_or(s.emb_dim),
+                "n_mels" => s.n_mels = int.unwrap_or(s.n_mels),
+                "subsampling" => s.subsampling = int.unwrap_or(s.subsampling),
+                "upsample_factor" => s.upsample_factor = int.unwrap_or(s.upsample_factor),
+                "spkcache_len" => s.spkcache_len = int.unwrap_or(s.spkcache_len),
+                "fifo_len" => s.fifo_len = int.unwrap_or(s.fifo_len),
+                "chunk_len" => s.chunk_len = int.unwrap_or(s.chunk_len),
+                "chunk_right_context" => {
+                    s.chunk_right_context = int.unwrap_or(s.chunk_right_context)
+                }
+                "sil_threshold" => s.sil_threshold = float.unwrap_or(s.sil_threshold),
+                "pred_score_threshold" => {
+                    s.pred_score_threshold = float.unwrap_or(s.pred_score_threshold)
+                }
+                "strong_boost_rate" => s.strong_boost_rate = float.unwrap_or(s.strong_boost_rate),
+                "weak_boost_rate" => s.weak_boost_rate = float.unwrap_or(s.weak_boost_rate),
+                "min_pos_scores_rate" => {
+                    s.min_pos_scores_rate = float.unwrap_or(s.min_pos_scores_rate)
+                }
+                "scores_boost_latest" => {
+                    s.scores_boost_latest = float.unwrap_or(s.scores_boost_latest)
+                }
+                "spkcache_sil_frames_per_spk" => {
+                    s.spkcache_sil_frames_per_spk = int.unwrap_or(s.spkcache_sil_frames_per_spk)
+                }
+                _ => {}
+            }
+        }
+        s
+    }
+
     /// Audio à attendre avant de traiter un morceau, en secondes.
     pub fn latency_s(&self) -> f64 {
         (self.chunk_len + self.chunk_right_context) as f64 * 0.08
