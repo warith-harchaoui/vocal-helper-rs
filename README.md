@@ -39,15 +39,51 @@ written yet is named as such rather than implied.
 | `cache` | speaker cache and FIFO bookkeeping across streaming steps | **done**, parity proven |
 | `schedule` | the streaming schedule and the two ceilings that bound it | **done**, parity proven |
 | `segments` | per-frame probabilities to speech turns | **done**, parity proven |
-| `accel` | choosing an execution provider by measuring it on the device | **done** |
+| `accel` | choosing an execution provider from measurements taken on the device | **policy done**, tested; not yet applied by the sessions, which run on ONNX Runtime's CPU default |
 | `asr` | Nemotron 3.5 transcription host: NeMo front end, windows, greedy CTC, timed words, speaker/event tags | **done**, parity proven on the real graph's metadata and outputs |
 | `onnx_meta` | reading a graph's `metadata_props` without loading its weights | **done** |
-| ONNX Runtime binding | driving the graph itself, through `ort`, behind the `onnx` feature | **transcription done** (`asr_session`, `examples/transcribe.rs`; 0.86 % WER from the Python twin on int8, RTF 0.15 on CPU); **diarization done** (`diar_session`, `examples/diarize.rs`; probabilities within 1.7e-6 of the Python twin over 3 min of AMI, cache compression included) |
+| ONNX Runtime binding | driving the graph itself, through `ort`, behind the `onnx` feature | **transcription done** (`asr_session`, `examples/transcribe.rs`; 0.86 % WER from the Python twin on int8, RTF 0.15 on CPU); **diarization done** (`diar_session`, `examples/diarize.rs`; probabilities within 1.7e-6 of the Python twin over 3 min of AMI, cache compression included; 1.9e-6 on another minute of AMI, re-measured for this release) |
 | paid paths | Gladia and pyannoteAI, batch and live | not written |
 
 ```sh
-cargo test                                  # 86 tests, parity included
+cargo test                                  # 87 tests, parity included
 cargo clippy --all-targets -- -D warnings
+```
+
+## Installation and use
+
+```toml
+[dependencies]
+vocal-helper-rs = { version = "0.1", features = ["onnx"] }
+```
+
+Without `onnx` the crate is the pure part (front ends, cache, schedule, segments, CTC decoding) and
+builds on Rust 1.82 with no native dependency. With `onnx` it pulls `ort` 2.0.0-rc.15, which needs
+Rust 1.92 and downloads a prebuilt ONNX Runtime at build time.
+
+**The graphs are not shipped with the crate**, they weigh hundreds of megabytes: you pass their path.
+The diarization graph is the single-file ONNX export of
+[nvidia/Nemotron-3-Diarization](https://huggingface.co/nvidia/Nemotron-3-Diarization) made for
+[Vernacula](https://github.com/christopherthompson81/vernacula), whose metadata carries the streaming
+schedule and the silence embedding; it is the `nemotron3/nemotron-3-diarization.onnx` file of the
+weight bundle the Python twin `vocal-helper` downloads.
+
+```rust
+use std::path::Path;
+use vocal_helper_rs::diar_session::NemotronDiar;
+
+// 16 kHz mono f32 samples; any other rate is an error, not a silent resample.
+let mut diar = NemotronDiar::open(Path::new("nemotron-3-diarization.onnx"), Some(1.04))?;
+for turn in diar.diarize(&samples, 16_000, 0.5)? {
+    println!("{:.2}\t{:.2}\tSPK{}", turn.start, turn.end, turn.speaker);
+}
+```
+
+`examples/diarize.rs` and `examples/transcribe.rs` do the same from a WAV file:
+
+```sh
+cargo run --release --features onnx --example diarize -- nemotron-3-diarization.onnx clip.wav
+cargo run --release --features onnx --example transcribe -- <asr-graph.onnx> clip.wav
 ```
 
 ## A port is only worth its parity
@@ -85,26 +121,18 @@ The second "obvious" setting was wrong too: forcing eight threads on an eight-pe
 machine measures 0.953 against 0.528 when the runtime chooses.
 
 The lesson is not that CoreML is bad — it will be excellent on another graph, or in a release that
-partitions better. The lesson is that a hardcoded order will be wrong somewhere, so the crate
-**tries on the device** and keeps the verdict. A verdict is tied to a graph digest, because
-partitioning depends on the operators and therefore on the model: that is precisely the mistake a
-hardcoded order makes.
+partitions better. The lesson is that a hardcoded order will be wrong somewhere, so the policy in
+`accel` chooses from **timings taken on the device** (`choose`), and a `Verdict` is tied to a graph
+digest (`applies_to`), because partitioning depends on the operators and therefore on the model:
+that is precisely the mistake a hardcoded order makes.
 
-The policy is pure — no model, no network, no ONNX — so it is entirely testable, and the runtime
-binding lives behind a feature flag.
+The policy is pure — no model, no network, no ONNX — so it is entirely testable.
 
-**And an explicit provider always wins.** The ladder is: a provider named by the caller, then
-`VOCAL_HELPER_PROVIDER`, then the measured verdict, then the head of the platform's candidate
-list when nothing could be measured. A name is taken exactly as given — never measured, never
-compared, never quietly replaced, because that is the whole point of naming it. A name that
-matches nothing is an **error**, not a fallback: falling back would make a typo undetectable,
-and you would believe you were running on CUDA while running on the CPU. The decision carries
-its own authority (`Explicit`, `Measured`, `Preference`) so a log never implies a measurement
-that did not happen.
-
-```sh
-VOCAL_HELPER_PROVIDER=coreml   # pins this machine, no code change
-```
+**What this release does not do yet**: the sessions do not consult that policy. `NemotronDiar` and
+`NemotronAsr` open their graph on ONNX Runtime's default provider, the CPU — which is also the
+measured winner on Apple Silicon above. Timing the providers on the device, the explicit ladder the
+Python twin has (a provider named by the caller, then `VOCAL_HELPER_PROVIDER`, then the measured
+verdict) and the error on an unknown name are the next step, not a feature of this crate today.
 
 
 ## What the numbers above come from

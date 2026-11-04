@@ -18,6 +18,12 @@ cargo clippy --all-targets -- -D warnings
 echo "pre-push: cargo test --all"
 cargo test --all
 
+# The `onnx` feature is the binding that drives the graphs, and nothing above
+# compiles it. Kept out of CI (it downloads a prebuilt ONNX Runtime), so this is
+# the one place it is gated.
+echo "pre-push: cargo clippy --all-targets --features onnx -- -D warnings"
+cargo clippy --all-targets --features onnx -- -D warnings
+
 # The three checks above build against the committed Cargo.lock and therefore
 # cannot see a dependency range that has gone bad for everyone downstream.
 echo "pre-push: fresh resolve (no Cargo.lock)"

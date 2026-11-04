@@ -2,9 +2,9 @@
 //!
 //! # Pourquoi cette caisse existe
 //!
-//! Le raisonnement évident sur les accélérateurs est faux, et on l'a payé. Sur
+//! Le raisonnement évident sur les accélérateurs est faux : on l'a payé. Sur
 //! Apple Silicon, ONNX Runtime n'a pas de moteur Metal : l'accélération passe
-//! donc par CoreML, et le mettre en tête semblait aller de soi. Mesuré sur le
+//! donc par CoreML ; le mettre en tête semblait aller de soi. Mesuré sur le
 //! graphe de diarisation, CoreML donne un facteur temps réel de **1,257** —
 //! c'est-à-dire plus lent que le direct, donc inutilisable — contre **0,528**
 //! pour le CPU seul. La cause se lit dans le journal de la session : CoreML ne
@@ -18,8 +18,8 @@
 //! runtime choisir.
 //!
 //! La leçon n'est pas « CoreML est mauvais » — il sera excellent sur un autre
-//! graphe, ou dans une version qui partitionne mieux. La leçon est qu'un ordre
-//! codé en dur sera faux quelque part, et qu'il faut donc **essayer sur
+//! graphe ou dans une version qui partitionne mieux. La leçon est qu'un ordre
+//! codé en dur sera faux quelque part ; il faut donc **essayer sur
 //! l'appareil** puis retenir le verdict. C'est ce que cette caisse organise.
 //!
 //! Le choix lui-même est une politique pure — pas de modèle, pas de réseau, pas
@@ -39,7 +39,7 @@ use serde::{Deserialize, Serialize};
 /// plutôt que de faire échouer le chargement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Provider {
-    /// Toujours là, et plus souvent gagnant qu'on ne le croit.
+    /// Toujours là ; plus souvent gagnant qu'on ne le croit.
     Cpu,
     /// Apple : GPU et moteur neuronal. Mesuré perdant sur le graphe de
     /// diarisation, à cause du découpage en partitions.
@@ -79,7 +79,7 @@ impl Provider {
     /// L'ordre place en tête ceux dont la couverture d'opérateurs est complète,
     /// parce qu'un déport partiel paie un aller-retour par partition. Le CPU
     /// vient tôt pour la même raison : il ne découpe rien. C'est un ordre de
-    /// départ pour la mesure, et [`choose`] le remplace par le verdict mesuré.
+    /// départ pour la mesure : [`choose`] le remplace par le verdict mesuré.
     pub fn candidates() -> Vec<Self> {
         let mut out = Vec::new();
         if cfg!(target_os = "android") {

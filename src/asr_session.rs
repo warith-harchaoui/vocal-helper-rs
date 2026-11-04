@@ -72,7 +72,7 @@ impl NemotronAsr {
     ///
     /// # Erreurs
     ///
-    /// [`SessionError`] si le graphe est illisible, hors contrat, ou si ONNX
+    /// [`SessionError`] si le graphe est illisible ou hors contrat, ou bien si ONNX
     /// Runtime refuse de l'ouvrir.
     pub fn open(path: &Path) -> Result<Self, SessionError> {
         let settings = AsrSettings::from_metadata(&graph_metadata(path)?)?;

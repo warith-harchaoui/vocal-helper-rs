@@ -1,10 +1,11 @@
 # Portage Rust de https://github.com/warith-harchaoui/vocal-helper (Python).
 #
-# Portée v0.1 : le chemin de diarisation en flux par Nemotron 3 — front-end
-# log-mel, tenue du cache de locuteurs et de la file, calendrier et ses deux
-# plafonds, choix du moteur d'exécution. La liaison à ONNX Runtime et les
-# chemins payants (Gladia, pyannoteAI) ne sont pas encore écrits ; le README le
-# dit plutôt que de laisser croire.
+# Portée v0.1 : les chemins Nemotron gratuits et locaux, diarisation en flux
+# (Nemotron 3) et transcription (Nemotron 3.5) — front-end log-mel, tenue du
+# cache de locuteurs et de la file, calendrier et ses deux plafonds, décodage
+# CTC ; enfin la liaison à ONNX Runtime derrière la feature `onnx`. Les chemins
+# payants (Gladia, pyannoteAI) ne sont pas écrits ; le README le dit plutôt que
+# de laisser croire.
 #
 # Ce portage ne vise PAS la vitesse, et c'est mesuré : 99,8 % du temps de la
 # diarisation est déjà dans ONNX Runtime, donc en C++, et `ort` appelle la même
@@ -14,8 +15,9 @@
 name = "vocal-helper-rs"
 version = "0.1.0"
 edition = "2021"
-# Vérifié et non supposé : `cargo test` passe sur 1.95.0. Le plancher est fixé
-# par `std::iter::repeat_n`, stable depuis 1.82.
+# Vérifié et non supposé : `cargo test` passe sur 1.82.0 (rustc lu dans
+# target/.rustc_info.json) comme sur 1.95.0. Le plancher est fixé par
+# `std::iter::repeat_n`, stable depuis 1.82.
 rust-version = "1.82"
 license = "BSD-3-Clause"
 description = "Portage Rust de vocal-helper : diarisation de la parole en flux, sans Python."
@@ -34,7 +36,12 @@ thiserror = "2.0"
 # La liaison à ONNX Runtime, optionnelle : tout le reste de la caisse se teste
 # sans elle, sur une machine nue. Elle demande Rust 1.92 (le plancher d'`ort`
 # rc.15) ; sans elle, `rust-version` ci-dessus reste le plancher.
-ort = { version = "2.0.0-rc.15", optional = true }
+#
+# Épinglée exactement, parce que `ort` change d'API d'une rc à l'autre. Une contrainte
+# `^2.0.0-rc.15` laisserait un projet neuf résoudre la rc suivante, que ce code
+# n'a jamais vue. Une caisse publiée fige ses métadonnées : le plafond se pose
+# avant, pas après.
+ort = { version = "=2.0.0-rc.15", optional = true }
 
 [features]
 default = []
