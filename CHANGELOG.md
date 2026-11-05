@@ -6,6 +6,24 @@ All notable changes to `vocal-helper-rs` are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `tests/jumeau_ami.rs`, ignored by default: 20 one-minute AMI clips transcribed
+  from Rust and compared with the Python twin's transcripts, kept in
+  `tests/fixtures/ami_jumeau_int8.json` and written by
+  `scripts/make_ami_jumeau.py`. Needs `VH_NEMOTRON_ASR_GRAPH` and
+  `VH_AMI_SUBSET`.
+
+### Changed
+
+- The transcription figures are re-measured (2026-11-05, Apple M2 Max, int8):
+  4.4 % WER from the Python twin over 20 min of AMI, not 0.86 % (that figure
+  came from one minute). The gap is the int8 graph's noise floor, not the Rust
+  host: the log-mel matches to 1.3e-6, the Python twin fed the Rust log-mel
+  still disagrees on the same frames, and the Python twin against itself with
+  graph optimizations off is 4.4 % apart too. RTF is 0.05 on CPU, against
+  0.022 to 0.028 for the Python twin; the 0.15 of 0.1.0 was not reproduced.
+
 ## [0.1.0] - 2026-11-04
 
 First release: the free local Nemotron paths of the Python `vocal-helper`,

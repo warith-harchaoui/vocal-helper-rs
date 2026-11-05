@@ -44,13 +44,29 @@ encore écrit est nommé comme tel plutôt que sous-entendu.
 | `accel` | choisir un moteur d'exécution d'après des mesures prises sur l'appareil | **politique faite**, testée ; pas encore appliquée par les sessions, qui tournent sur le CPU par défaut d'ONNX Runtime |
 | `asr` | l'hôte de la transcription Nemotron 3.5 : front-end NeMo, fenêtres, CTC glouton, mots horodatés, balises de locuteur et d'événement | **fait**, parité prouvée sur les métadonnées et les sorties du vrai graphe |
 | `onnx_meta` | lire les `metadata_props` d'un graphe sans charger ses poids | **fait** |
-| liaison ONNX Runtime | piloter le graphe lui-même, par `ort`, derrière la feature `onnx` | **transcription faite** (`asr_session`, `examples/transcribe.rs` ; 0,86 % de WER d'écart au jumeau Python en int8, RTF 0,15 sur CPU) ; **diarisation faite** (`diar_session`, `examples/diarize.rs` ; probabilités à 1,7e-6 du jumeau Python sur 3 min d'AMI, compression du cache comprise ; 1,9e-6 sur une autre minute d'AMI, remesuré pour cette version) |
+| liaison ONNX Runtime | piloter le graphe lui-même, par `ort`, derrière la feature `onnx` | **transcription faite** (`asr_session`, `examples/transcribe.rs` ; 4,4 % de WER d'écart au jumeau Python en int8 sur 20 min d'AMI, soit le bruit propre au graphe int8 (le jumeau Python contre lui-même, optimisations du graphe coupées : 4,4 %) ; mel identique à 1,3e-6 près ; RTF 0,05 sur CPU contre 0,022 à 0,028 pour le jumeau Python ; mesuré le 2026-11-05 sur un Apple M2 Max, `tests/jumeau_ami.rs`) ; **diarisation faite** (`diar_session`, `examples/diarize.rs` ; probabilités à 1,7e-6 du jumeau Python sur 3 min d'AMI, compression du cache comprise ; 1,9e-6 sur une autre minute d'AMI, remesuré pour cette version) |
 | chemins payants | Gladia et pyannoteAI, en lot et en direct | pas écrits |
 
 ```sh
 cargo test                                  # 87 tests, parité comprise
 cargo clippy --all-targets -- -D warnings
 ```
+
+La vérification de bout en bout contre le jumeau Python demande le graphe int8 et le
+sous-corpus AMI que `vocal-helper` met en cache : elle est donc ignorée par défaut. Une
+commande la relance :
+
+```sh
+VH_NEMOTRON_ASR_GRAPH=~/.cache/vocal-helper/nemotron-onnx/nemotron-asr-ctc.int8.onnx \
+VH_AMI_SUBSET=~/.cache/vocal-helper/ami-subset \
+cargo test --release --features onnx --test jumeau_ami -- --ignored --nocapture
+```
+
+Elle transcrit 20 minutes d'AMI et échoue au-delà de 6 % de WER contre les transcriptions
+Python gardées dans `tests/fixtures/ami_jumeau_int8.json` (ou au-delà de 15 % sur une seule
+minute). L'écart n'est pas nul et ne doit pas l'être : deux builds d'ONNX Runtime arrondissent
+différemment les noyaux int8, si bien que les trames où deux jetons sont presque à égalité
+basculent. `scripts/make_ami_jumeau.py` réécrit la fixture.
 
 ## Installation et usage
 
