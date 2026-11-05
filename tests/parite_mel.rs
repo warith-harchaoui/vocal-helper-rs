@@ -2,7 +2,7 @@
 //!
 //! C'est la seule question qui compte pour ce portage. Les deux chemins
 //! alimentent le **même graphe ONNX** : s'ils ne lui donnent pas les mêmes
-//! trames, le chemin mobile fabrique silencieusement d'autres probabilités, et
+//! trames, le chemin mobile fabrique silencieusement d'autres probabilités ;
 //! aucun test unitaire de chaque côté ne le verrait.
 //!
 //! La référence est produite par `vocal_helper.nemotron.log_mel`, lui-même
@@ -12,7 +12,7 @@
 //!
 //! Les cas couvrent ce qui peut différer : un spectre riche qui met tout le banc
 //! à contribution, un ton pur sur la charnière de l'échelle Slaney, deux tons
-//! éloignés pour détecter une fuite entre filtres voisins, et du silence, où le
+//! éloignés pour détecter une fuite entre filtres voisins, enfin du silence, où le
 //! plancher du logarithme doit être atteint exactement.
 
 use std::collections::HashMap;
@@ -27,7 +27,7 @@ struct Case {
 
 /// Tolérance sur une valeur log-mel.
 ///
-/// La référence est arrondie à cinq décimales à l'écriture, et les deux chemins
+/// La référence est arrondie à cinq décimales à l'écriture ; les deux chemins
 /// n'emploient pas la même transformée — pocketfft d'un côté, realfft de
 /// l'autre. `1e-3` est donc large pour du bruit d'arrondi et reste cent fois
 /// plus serré que l'écart de 0,006 qui sépare déjà le Python de l'extracteur
@@ -99,7 +99,7 @@ fn le_silence_atteint_le_meme_plancher_des_deux_cotes() {
 #[test]
 fn le_nombre_de_trames_suit_la_meme_regle_de_bord() {
     // Le remplissage et le découpage sont les deux endroits où deux
-    // implémentations divergent le plus facilement d'une trame, et une trame de
+    // implémentations divergent le plus facilement d'une trame ; une trame de
     // décalage décale toute la diarisation de 10 ms.
     let settings = MelSettings::default();
     for (name, case) in reference() {

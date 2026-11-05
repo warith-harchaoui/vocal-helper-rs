@@ -4,7 +4,7 @@
 //! sorties. La référence vient de `vocal_helper.nemotron_asr`, lui-même vérifié
 //! contre le front-end NeMo (écart de mel ≤ 1,3e-5, argmax identique sur 750
 //! trames). Les fixtures sont écrites par `scripts/make_asr_fixture.py` à partir
-//! du vrai graphe : ses métadonnées réelles, et ses sorties sur 30 s d'AMI.
+//! du vrai graphe : ses métadonnées réelles ainsi que ses sorties sur 30 s d'AMI.
 
 use std::path::Path;
 

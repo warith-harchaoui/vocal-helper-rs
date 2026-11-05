@@ -1,8 +1,8 @@
-//! Diarisation de la parole en flux, en Rust, sans Python ni torch.
+//! Diarisation de la parole en flux et transcription, en Rust, sans Python ni torch.
 //!
-//! Portage de [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper),
-//! et plus précisément de son chemin de diarisation gratuit et local : le modèle
-//! Nemotron 3 Diarization à travers son graphe ONNX.
+//! Portage de [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper) :
+//! ses chemins Nemotron gratuits et locaux, la diarisation Nemotron 3 en flux
+//! puis la transcription Nemotron 3.5, chacune à travers son graphe ONNX.
 //!
 //! # Ce portage ne vise pas la vitesse
 //!
@@ -16,14 +16,14 @@
 //! Il vise les endroits où Python ne va pas. Sur iOS et Android, on n'embarque
 //! pas raisonnablement CPython et une pile scientifique : c'est un argument de
 //! **possibilité** et non de performance. S'y ajoutent un binaire unique par
-//! plateforme, aucune résolution de dépendances à l'installation, et aucun
+//! plateforme, aucune résolution de dépendances à l'installation, aucun
 //! interpréteur à démarrer.
 //!
-//! # Ce qui est écrit, et ce qui ne l'est pas
+//! # Ce qui est écrit, ce qui ne l'est pas
 //!
-//! Tout ce qui vit **autour** du graphe est là, et c'est l'essentiel du travail :
+//! Tout ce qui vit **autour** du graphe est là ; c'est l'essentiel du travail :
 //! le front-end que le graphe attend à la trame près, la tenue du cache de
-//! locuteurs et de la file, le calendrier et ses deux plafonds, et le choix du
+//! locuteurs et de la file, le calendrier et ses deux plafonds, enfin le choix du
 //! moteur d'exécution. Rien de tout cela n'appelle le graphe, donc tout se
 //! vérifie sans modèle — et tout est vérifié **contre le chemin Python**, parce
 //! que les deux alimentent le même graphe et qu'un désaccord produirait
@@ -39,8 +39,10 @@
 //! `diar_session::NemotronDiar` et `asr_session::NemotronAsr` ouvrent les
 //! graphes par la caisse `ort` et les font tourner de bout en bout : la
 //! diarisation rend les mêmes probabilités que le jumeau Python à 2e-6 près, la
-//! transcription le même texte à 0,86 % de WER près sur un graphe int8. Les
-//! graphes ne sont pas distribués avec la caisse : on passe leur chemin.
+//! transcription le même texte à 4,4 % de WER près sur vingt minutes d'AMI en
+//! int8, soit le bruit propre au graphe int8 (le jumeau Python contre lui-même,
+//! optimisations du graphe coupées, s'écarte d'autant). Les graphes ne sont pas
+//! distribués avec la caisse : on passe leur chemin.
 //!
 //! Les sessions s'ouvrent sur le moteur par défaut d'ONNX Runtime, le CPU. La
 //! politique de [`accel`] (choisir le moteur sur une mesure) est écrite et

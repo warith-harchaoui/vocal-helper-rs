@@ -10,7 +10,7 @@
 //! La référence couvre les étapes qui peuvent différer indépendamment : le score
 //! d'une trame, l'écartement de ce qui n'est pas de la parole propre, le
 //! renforcement, la compression, une suite de six pas de flux où le cache se
-//! remplit puis se comprime, la traduction en tours de parole, et le choix du
+//! remplit puis se comprime, la traduction en tours de parole, enfin le choix du
 //! calendrier pour huit budgets de latence.
 
 use std::collections::HashMap;

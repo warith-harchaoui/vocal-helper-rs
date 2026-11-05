@@ -6,10 +6,10 @@
 //! configuration en donne la charpente — 16 kHz, fenêtre de 400 échantillons,
 //! saut de 160, transformée sur 512, pré-accentuation 0,97, 128 bandes — mais
 //! pas le détail qui décide. Ces détails ont été **retrouvés en comparant aux
-//! sorties de l'extracteur officiel**, pas devinés, et deux comptent :
+//! sorties de l'extracteur officiel**, pas devinés. Deux comptent :
 //!
 //! - La fenêtre d'analyse de 400 points est **centrée** dans la transformée de
-//!   512, et non collée au début. La coller multiplie par seize l'écart aux
+//!   512 plutôt que collée au début. La coller multiplie par seize l'écart aux
 //!   sorties officielles — 0,530 au lieu de 0,033 — parce que le décalage de
 //!   phase introduit change le spectre.
 //! - Le plancher du logarithme est `2^-24`, retrouvé en lisant le minimum des
@@ -26,7 +26,7 @@
 use realfft::RealFftPlanner;
 use thiserror::Error;
 
-/// Ce qui peut mal se passer, et qui doit se dire plutôt que se corriger en silence.
+/// Ce qui peut mal se passer et doit se dire plutôt que se corriger en silence.
 #[derive(Debug, Error)]
 pub enum MelError {
     /// Rééchantillonner sans le dire produirait des trames plausibles et fausses.
@@ -99,7 +99,7 @@ fn mel_to_hz(mel: f64) -> f64 {
 /// Le banc de filtres mel, `n_mels` lignes de `n_fft / 2 + 1` colonnes.
 ///
 /// Écrit à la main plutôt que tiré d'une dépendance : c'est une matrice
-/// triangulaire, et la convention qui compte — l'échelle Slaney et sa
+/// triangulaire ; la convention qui compte — l'échelle Slaney et sa
 /// normalisation par la largeur de bande — tient en quelques lignes. Une
 /// dépendance de plus sur un chemin destiné au mobile se paierait au poids du
 /// binaire pour rien.
@@ -139,7 +139,7 @@ pub fn mel_filterbank(settings: &MelSettings) -> Vec<Vec<f64>> {
 
 /// La fenêtre d'analyse, **centrée** dans la transformée.
 ///
-/// Hann périodique, comme la référence, et placée au milieu des `n_fft` points.
+/// Hann périodique comme la référence, placée au milieu des `n_fft` points.
 /// C'est la convention dont l'absence multipliait par seize l'écart aux sorties
 /// officielles, donc elle est isolée ici pour être testable à part.
 pub fn centred_window(settings: &MelSettings) -> Vec<f64> {

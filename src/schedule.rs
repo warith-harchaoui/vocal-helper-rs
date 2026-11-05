@@ -1,7 +1,7 @@
-//! Le calendrier de flux, et les deux plafonds qui le bornent.
+//! Le calendrier de flux avec les deux plafonds qui le bornent.
 //!
 //! Les longueurs vivent dans les métadonnées du graphe plutôt que dans ce
-//! fichier : un moteur mis à jour apporte les siennes, et un écart entre le code
+//! fichier : un moteur mis à jour apporte les siennes ; un écart entre le code
 //! et le fichier devient impossible. Les valeurs par défaut sont celles du point
 //! de contrôle actuel, pour que la caisse se teste sans graphe.
 
@@ -32,9 +32,9 @@ pub const STREAMING_MODES: [(&str, usize, usize); 3] = [
 ///
 /// Le plus long contexte viable, 6,4 s, est **moins cher** à qualité égale —
 /// facteur temps réel de 0,166 contre 0,258, pour 0,092 de taux d'erreur contre
-/// 0,090. Mais cette égalité n'existe qu'en salle anéchoïque, et une salle de
+/// 0,090. Mais cette égalité n'existe qu'en salle anéchoïque ; une salle de
 /// réunion ne l'est pas : réverbérée à 0,6 s de temps de décroissance, les deux
-/// se séparent nettement — 0,350 contre 0,252 d'erreur, et un accord longue
+/// se séparent nettement — 0,350 contre 0,252 d'erreur avec un accord longue
 /// portée de 0,372 contre 0,668, presque doublé. Le contexte long dilue la
 /// décision quand la salle smeare le signal.
 pub const DEFAULT_LATENCY_S: f64 = 1.04;
@@ -161,7 +161,7 @@ impl Schedule {
 
     /// Le graphe peut-il traiter ce calendrier à cache plein ?
     ///
-    /// Deux conditions, et c'est la seconde qui mord. La séquence doit tenir dans
+    /// Deux conditions ; c'est la seconde qui mord. La séquence doit tenir dans
     /// [`MAX_SEQUENCE_FRAMES`] ; et le morceau ne doit pas dépasser la file,
     /// faute de quoi celle-ci grandit sans borne — la mise à jour lui ajoute
     /// `chunk_len` trames et n'en retire que `fifo_len`. À 281 trames de morceau
@@ -201,14 +201,14 @@ impl Schedule {
     /// et prend donc tout ce qui tient.
     pub fn within(self, latency_s: Option<f64>) -> Self {
         let right = self.chunk_right_context;
-        // La file borne le morceau, et c'est la contrainte qui compte vraiment.
+        // La file borne le morceau : c'est la contrainte qui compte vraiment.
         let room = (MAX_SEQUENCE_FRAMES.saturating_sub(self.spkcache_len + self.fifo_len))
             .min(self.fifo_len + right);
         match latency_s {
             None => self.with_chunk(room.saturating_sub(right).max(1), right),
             Some(budget) => {
                 let frames = (budget / 0.08) as usize;
-                // Deux familles de candidats, et on prend le plus long des deux.
+                // Deux familles de candidats : on prend le plus long des deux.
                 //
                 // Les calendriers publiés ont un contexte droit plus court — 4, 2
                 // et 1 trames — donc ils sont les seuls à tenir dans un petit
@@ -339,7 +339,7 @@ mod tests {
 
     #[test]
     fn un_budget_intenable_rend_le_plus_court_plutot_que_rien() {
-        // Ne pas diariser est pire que dépasser le budget, et il faut le dire
+        // Ne pas diariser est pire que dépasser le budget ; il faut le dire
         // par le comportement plutôt que par une erreur.
         let chosen = Schedule::default().within(Some(0.01));
         assert_eq!((chosen.chunk_len, chosen.chunk_right_context), (3, 1));

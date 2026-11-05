@@ -4,7 +4,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/vocal-helper-rs.svg)](https://crates.io/crates/vocal-helper-rs) [![Licence : BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
 
-Réécriture en Rust du chemin de diarisation gratuit et local de [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper) — Nemotron 3 Diarization par son graphe ONNX. Pas un portage ligne à ligne : du Rust idiomatique de bout en bout.
+Réécriture en Rust des chemins Nemotron gratuits et locaux de [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper) : la diarisation en flux avec Nemotron 3 Diarization puis la transcription avec Nemotron 3.5, chacune par son graphe ONNX. Pas un portage ligne à ligne : du Rust idiomatique de bout en bout.
 
 ## Pourquoi ce dépôt existe, dit honnêtement
 
@@ -25,8 +25,8 @@ Qui promet un gain de RTF ici n'a pas mesuré.
 **Pour des endroits où tourner.** Sur iOS et Android, le chemin Python n'existe pas : on n'embarque
 pas raisonnablement CPython et une pile scientifique dans une application mobile. C'est un argument
 de *possibilité* et non de performance : il est décisif. S'y ajoutent un binaire unique par
-plateforme, aucune résolution de dépendances à l'installation, aucun interpréteur à démarrer, et
-une empreinte mémoire modeste pour un service qui écoute en arrière-plan.
+plateforme, aucune résolution de dépendances à l'installation, aucun interpréteur à démarrer,
+sans oublier une empreinte mémoire modeste pour un service qui écoute en arrière-plan.
 
 Même moteur, mêmes nombres, même vitesse — quelque part où Python n'accède pas.
 
@@ -48,7 +48,7 @@ encore écrit est nommé comme tel plutôt que sous-entendu.
 | chemins payants | Gladia et pyannoteAI, en lot et en direct | pas écrits |
 
 ```sh
-cargo test                                  # 87 tests, parité comprise
+cargo test                                  # 93 tests, parité comprise
 cargo clippy --all-targets -- -D warnings
 ```
 
@@ -104,6 +104,9 @@ for tour in diar.diarize(&echantillons, 16_000, 0.5)? {
 cargo run --release --features onnx --example diarize -- nemotron-3-diarization.onnx clip.wav
 cargo run --release --features onnx --example transcribe -- <graphe-asr.onnx> clip.wav
 ```
+
+Les deux attendent du 16 kHz et moyennent plusieurs canaux en mono. `diarize` écrit un tour par
+ligne ; avec `--probs <sortie.f32>`, il écrit aussi les probabilités à 10 ms en `f32` petit-boutiste.
 
 ## Un portage ne vaut que sa parité
 
@@ -164,6 +167,21 @@ La campagne de mesure derrière ces choix est consignée dans
 de vocal-helper, impasses comprises : quatre paramétrages de seuil réfutés, le regroupement sans
 centroïde fermé, enfin la découverte que la référence d'AMI ne peut pas arbitrer parce qu'elle est
 transcrite sur les micros-casques alors qu'on donne au moteur le mixage de salle.
+
+## Skill d'agent
+
+`skills/vocal-helper-rs/` emballe cette caisse en **Claude Skill** comme en **skill OpenCode** : un
+agent peut la découvrir puis écrire du Rust avec elle pour le compte de l'utilisateur.
+L'installation pour les deux hôtes est dans
+[`skills/README.md`](https://github.com/warith-harchaoui/vocal-helper-rs/blob/main/skills/README.md).
+
+Son catalogue de déclencheurs est vérifié, pas décoratif :
+[`TRIGGERS.md`](https://github.com/warith-harchaoui/vocal-helper-rs/blob/main/TRIGGERS.md) est le
+catalogue tourné vers l'utilisateur, `references/triggers.md` son miroir tourné vers l'agent.
+`tests/skill.rs` fait échouer `cargo test` si les deux divergent, si la `description` du skill
+dépasse le plafond de 1024 caractères ou perd sa clause SKIP, voire si `SKILL.md` cite une
+référence absente. Le hook pre-push le lance ; `scripts/install-hooks.sh` active ce hook une fois
+par clone.
 
 ## Voisinage
 

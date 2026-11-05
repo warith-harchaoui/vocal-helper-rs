@@ -4,7 +4,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/vocal-helper-rs.svg)](https://crates.io/crates/vocal-helper-rs) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
 
-Rust rewrite of [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper)'s free local diarization path — Nemotron 3 Diarization through its ONNX graph. Not a line-by-line port, idiomatic Rust throughout.
+Rust rewrite of [`vocal-helper`](https://github.com/warith-harchaoui/vocal-helper)'s free local Nemotron paths: streaming diarization with Nemotron 3 Diarization and transcription with Nemotron 3.5, each through its ONNX graph. Not a line-by-line port, idiomatic Rust throughout.
 
 ## Why this exists, stated honestly
 
@@ -46,7 +46,7 @@ written yet is named as such rather than implied.
 | paid paths | Gladia and pyannoteAI, batch and live | not written |
 
 ```sh
-cargo test                                  # 87 tests, parity included
+cargo test                                  # 93 tests, parity included
 cargo clippy --all-targets -- -D warnings
 ```
 
@@ -99,6 +99,9 @@ for turn in diar.diarize(&samples, 16_000, 0.5)? {
 cargo run --release --features onnx --example diarize -- nemotron-3-diarization.onnx clip.wav
 cargo run --release --features onnx --example transcribe -- <asr-graph.onnx> clip.wav
 ```
+
+Both expect 16 kHz and average several channels to mono. `diarize` prints one turn per line and,
+given `--probs <out.f32>`, also writes the 10 ms probabilities as little-endian `f32`.
 
 ## A port is only worth its parity
 
@@ -156,6 +159,19 @@ The measurement campaign behind these choices is written up in vocal-helper's
 including the dead ends: four threshold parameterisations refuted, centroid-free clustering closed,
 and the discovery that AMI's reference cannot arbitrate because it is transcribed from headset
 microphones while the engine is given the room mix.
+
+## Agent skill
+
+`skills/vocal-helper-rs/` packages this crate as a **Claude Skill** and an **OpenCode skill**, so
+an agent can discover it and write Rust against it on the user's behalf. Installation for both hosts
+is in [`skills/README.md`](https://github.com/warith-harchaoui/vocal-helper-rs/blob/main/skills/README.md).
+
+Its trigger catalogue is enforced, not decorative:
+[`TRIGGERS.md`](https://github.com/warith-harchaoui/vocal-helper-rs/blob/main/TRIGGERS.md) is the
+user-facing catalogue, `references/triggers.md` is its agent-facing mirror. `tests/skill.rs` fails
+`cargo test` if the two drift apart, if the skill's `description` exceeds the 1024-character cap or
+loses its SKIP clause, or if `SKILL.md` cites a reference that does not exist. The pre-push hook
+runs it; `scripts/install-hooks.sh` enables that hook once per clone.
 
 ## Related
 

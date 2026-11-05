@@ -1,6 +1,6 @@
 //! Choisir le moteur d'exécution en le **mesurant**, pas en le supposant.
 //!
-//! # Pourquoi cette caisse existe
+//! # Pourquoi ce module existe
 //!
 //! Le raisonnement évident sur les accélérateurs est faux : on l'a payé. Sur
 //! Apple Silicon, ONNX Runtime n'a pas de moteur Metal : l'accélération passe
@@ -20,13 +20,16 @@
 //! La leçon n'est pas « CoreML est mauvais » — il sera excellent sur un autre
 //! graphe ou dans une version qui partitionne mieux. La leçon est qu'un ordre
 //! codé en dur sera faux quelque part ; il faut donc **essayer sur
-//! l'appareil** puis retenir le verdict. C'est ce que cette caisse organise.
+//! l'appareil** puis retenir le verdict. C'est ce que ce module organise.
 //!
 //! Le choix lui-même est une politique pure — pas de modèle, pas de réseau, pas
-//! d'ONNX — donc elle se vérifie entièrement par des tests. La liaison au
-//! runtime vit derrière le drapeau `ort`, pour que ce raisonnement soit
-//! compilable et testable sur une machine qui n'a pas encore téléchargé le
-//! runtime.
+//! d'ONNX — donc elle se vérifie entièrement par des tests, sans la feature
+//! `onnx`, sur une machine qui n'a pas téléchargé le runtime.
+//!
+//! **Pas encore branché** : `NemotronDiar` et `NemotronAsr` ouvrent leur graphe
+//! sur le moteur par défaut d'ONNX Runtime, le CPU, sans consulter ce module.
+//! Chronométrer les moteurs sur l'appareil puis appliquer le verdict reste à
+//! écrire.
 
 use std::time::Duration;
 
@@ -95,7 +98,7 @@ impl Provider {
         }
         out.push(Self::Cpu);
         if cfg!(any(target_os = "macos", target_os = "ios")) {
-            // Après le CPU, et le commentaire du module dit pourquoi : mesuré
+            // Après le CPU ; le commentaire du module dit pourquoi : mesuré
             // 2,4 fois plus lent sur ce graphe, à cause de 316 partitions.
             out.push(Self::CoreMl);
         }
@@ -144,7 +147,7 @@ impl Verdict {
 
 /// Choisir d'après ce qui a été mesuré, en préférant la marge au classement.
 ///
-/// On retient le plus rapide, et non le premier d'un ordre supposé. Une mesure
+/// On retient le plus rapide plutôt que le premier d'un ordre supposé. Une mesure
 /// absente vaut « non disponible », pas « mauvais » : un moteur qu'on n'a pas pu
 /// essayer ne doit pas être écarté pour autant, il est simplement en bas.
 ///
@@ -256,8 +259,8 @@ mod tests {
 
     #[test]
     fn le_cpu_est_toujours_candidat() {
-        // Quelle que soit la plateforme : c'est le seul qui ne peut pas manquer,
-        // et c'est ce qui garantit qu'on diarise toujours.
+        // Quelle que soit la plateforme : c'est le seul qui ne peut pas manquer :
+        // c'est ce qui garantit qu'on diarise toujours.
         assert!(Provider::candidates().contains(&Provider::Cpu));
     }
 

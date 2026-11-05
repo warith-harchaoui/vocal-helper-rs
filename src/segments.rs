@@ -1,6 +1,6 @@
 //! Des probabilités par trame aux tours de parole.
 
-/// Un tour de parole : un locuteur, et quand il parle.
+/// Un tour de parole : un locuteur avec le moment où il parle.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Segment {
     /// Début, en secondes.
@@ -21,7 +21,7 @@ impl Segment {
 /// Seuiller les probabilités par trame et recoller les miettes.
 ///
 /// Deux locuteurs simultanés donnent deux tours qui se recouvrent, ce qui est
-/// voulu : le modèle sait le dire, et l'écraser perdrait l'information.
+/// voulu : le modèle sait le dire ; l'écraser perdrait l'information.
 ///
 /// Les tours d'un même locuteur séparés de moins de `bridge_s` sont réunis,
 /// parce qu'un silence de respiration n'est pas un changement de tour et qu'une

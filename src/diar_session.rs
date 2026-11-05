@@ -1,7 +1,7 @@
 //! Piloter le graphe de diarisation Nemotron 3 par ONNX Runtime (feature `onnx`).
 //!
 //! Le portage de `vocal_helper.nemotron.NemotronOnnxDiar.probabilities` : le
-//! fichier défile comme un flux, morceau par morceau, et le cache de locuteurs
+//! fichier défile comme un flux, morceau par morceau ; le cache de locuteurs
 //! et la file sont tenus par [`crate::cache::streaming_update`] entre deux pas.
 
 use std::path::Path;
@@ -50,7 +50,7 @@ impl NemotronDiar {
     ///
     /// # Erreurs
     ///
-    /// [`DiarError`] si le graphe est illisible, sans empreinte de silence, ou
+    /// [`DiarError`] si le graphe est illisible, sans empreinte de silence, voire
     /// si ONNX Runtime refuse de l'ouvrir.
     pub fn open(path: &Path, latency_s: Option<f64>) -> Result<Self, DiarError> {
         let meta = graph_metadata(path)?;

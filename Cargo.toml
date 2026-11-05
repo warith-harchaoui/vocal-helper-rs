@@ -7,8 +7,8 @@
 # payants (Gladia, pyannoteAI) ne sont pas écrits ; le README le dit plutôt que
 # de laisser croire.
 #
-# Ce portage ne vise PAS la vitesse, et c'est mesuré : 99,8 % du temps de la
-# diarisation est déjà dans ONNX Runtime, donc en C++, et `ort` appelle la même
+# Ce portage ne vise PAS la vitesse ; c'est mesuré : 99,8 % du temps de la
+# diarisation est déjà dans ONNX Runtime, donc en C++ ; `ort` appelle la même
 # bibliothèque. Il vise les endroits où Python ne va pas — iOS, Android, un
 # binaire unique par plateforme.
 [package]

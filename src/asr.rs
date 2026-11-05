@@ -6,7 +6,7 @@
 //! celle du blanc. Ce module est le portage de `vocal_helper.nemotron_asr` :
 //!
 //! - le front-end de NeMo, avec la fenêtre et le banc de filtres que le graphe
-//!   porte dans ses métadonnées — remplissage **constant**, et non par réflexion
+//!   porte dans ses métadonnées — remplissage **constant** plutôt que par réflexion
 //!   comme le front-end du diariseur ([`crate::mel`]) ;
 //! - la normalisation par bande ;
 //! - le plan des fenêtres de 30 s ;
@@ -93,7 +93,7 @@ impl AsrSettings {
     ///
     /// # Erreurs
     ///
-    /// [`AsrError`] si une clé manque, ne se lit pas, ou si le contrat diffère.
+    /// [`AsrError`] si une clé manque ou ne se lit pas, voire si le contrat diffère.
     pub fn from_metadata(meta: &HashMap<String, String>) -> Result<Self, AsrError> {
         let get = |key: &str| -> Result<&str, AsrError> {
             meta.get(&format!("{META_PREFIX}{key}"))
@@ -149,7 +149,7 @@ impl AsrSettings {
     }
 }
 
-/// Le log-mel de NeMo, `n_mels` bandes de `T` trames, et le nombre de trames valides.
+/// Le log-mel de NeMo, `n_mels` bandes de `T` trames, avec le nombre de trames valides.
 ///
 /// # Erreurs
 ///
@@ -353,7 +353,7 @@ fn round3(x: f64) -> f64 {
     (x * 1000.0).round() / 1000.0
 }
 
-/// Regrouper les pièces en mots horodatés, et sortir les balises à part.
+/// Regrouper les pièces en mots horodatés puis sortir les balises à part.
 ///
 /// Une pièce qui commence par `▁` ouvre un mot, les autres le prolongent, une
 /// balise clôt le mot en cours. `<unk>` est avalé.

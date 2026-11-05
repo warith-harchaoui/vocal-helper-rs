@@ -8,12 +8,12 @@
 //! référence.
 //!
 //! Tout ici est de l'arithmétique sur des tableaux : ni modèle, ni réseau, ni
-//! ONNX. C'est donc entièrement vérifiable, et c'est vérifié — y compris contre
-//! le chemin Python, dans `tests/parite_python.rs`.
+//! ONNX. C'est donc entièrement vérifiable ; c'est vérifié — y compris contre
+//! le chemin Python, dans `tests/parite_diar.rs`.
 
 use crate::schedule::Schedule;
 
-/// Une observation gardée dans le cache, et sa probabilité par locuteur.
+/// Une observation gardée dans le cache avec sa probabilité par locuteur.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Slot {
     /// L'empreinte, de dimension `emb_dim`.
@@ -99,7 +99,7 @@ pub fn disable_low_scores(
     min_positive: usize,
 ) {
     let frames = predictions.len() / num_speakers;
-    // L'ORDRE COMPTE, et il est le même qu'en Python : on masque d'abord ce qui
+    // L'ORDRE COMPTE ; il est le même qu'en Python : on masque d'abord ce qui
     // n'est pas de la parole, PUIS on compte les trames franches sur le tableau
     // déjà masqué. Compter avant donnerait un décompte plus élevé, donc
     // écarterait du recouvrement là où le locuteur n'a en fait pas de quoi.
@@ -132,7 +132,7 @@ pub fn disable_low_scores(
 /// Relever les `count` meilleurs scores de chaque locuteur.
 ///
 /// Appliqué deux fois par la compression, avec deux intensités : une forte, pour
-/// garantir à chaque locuteur un minimum de place dans le cache, et une faible,
+/// garantir à chaque locuteur un minimum de place dans le cache ; une faible,
 /// pour empêcher un bavard d'occuper tout l'espace. Les trames déjà écartées
 /// restent à moins l'infini.
 pub fn boost_top_scores(scores: &mut [f64], num_speakers: usize, count: usize, scale: f64) {
@@ -162,7 +162,7 @@ pub fn boost_top_scores(scores: &mut [f64], num_speakers: usize, count: usize, s
 /// On garde les trames dont les scores disent qu'elles portent de la parole
 /// propre, en réservant à chaque locuteur sa part et en laissant quelques
 /// créneaux de silence par locuteur. Les créneaux vides reçoivent l'empreinte de
-/// silence **apprise** que l'export transporte, et non la moyenne des trames
+/// silence **apprise** que l'export transporte plutôt que la moyenne des trames
 /// silencieuses — c'est l'un des deux écarts de ce point de contrôle par rapport
 /// à Streaming Sortformer 2.x.
 pub fn compress_cache(slots: &[Slot], schedule: &Schedule, silence: &[f32]) -> Vec<Slot> {
@@ -221,8 +221,8 @@ pub fn compress_cache(slots: &[Slot], schedule: &Schedule, silence: &[f32]) -> V
     // L'ordre retenu est celui des indices À PLAT, pas celui des trames : les
     // scores ont été mis à plat par locuteur, donc trier les indices range
     // d'abord les trames du locuteur 0, puis son créneau de silence, puis celles
-    // du locuteur 1, et ainsi de suite. Les créneaux de silence s'intercalent
-    // ainsi au lieu de finir en queue — c'est la convention de la référence, et
+    // du locuteur 1, ainsi de suite. Les créneaux de silence s'intercalent
+    // ainsi au lieu de finir en queue — c'est la convention de la référence ;
     // le cache est relu dans cet ordre.
     let sentinel = usize::MAX;
     let mut chosen: Vec<usize> = flat
@@ -267,11 +267,11 @@ pub fn compress_cache(slots: &[Slot], schedule: &Schedule, silence: &[f32]) -> V
         .collect()
 }
 
-/// Faire entrer un morceau dans la file, et la file dans le cache.
+/// Faire entrer un morceau dans la file puis la file dans le cache.
 ///
 /// Le portage de `streaming_update`, pour un seul flux. Les probabilités reçues
 /// couvrent `[cache | file | morceau]` : on en découpe la part de la file et
-/// celle du morceau, le morceau rejoint la file, et ce que la file pousse dehors
+/// celle du morceau, le morceau rejoint la file ; ce que la file pousse dehors
 /// rejoint le cache — qu'on comprime s'il déborde.
 ///
 /// Rend les probabilités du seul morceau.

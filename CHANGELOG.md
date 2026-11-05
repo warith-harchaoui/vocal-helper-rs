@@ -13,6 +13,12 @@ All notable changes to `vocal-helper-rs` are documented here. The format follows
   `tests/fixtures/ami_jumeau_int8.json` and written by
   `scripts/make_ami_jumeau.py`. Needs `VH_NEMOTRON_ASR_GRAPH` and
   `VH_AMI_SUBSET`.
+- The agent skill `skills/vocal-helper-rs/` (Claude and OpenCode) with its
+  trigger catalogue `TRIGGERS.md`. `tests/skill.rs` keeps them honest: the
+  catalogue and its `references/triggers.md` mirror must stay identical, the
+  `description` must fit the 1024-character cap and carry a SKIP clause.
+- `scripts/install-hooks.sh`, which the pre-push hook already named: it points
+  `core.hooksPath` at `.githooks/`.
 
 ### Changed
 

@@ -4,7 +4,7 @@
   (banc de filtres, fenêtre, vocabulaire), sans un octet de poids ;
 - ``tests/fixtures/asr_reference.json`` : 1,5 s de parole réelle et son log-mel
   normalisé par ``vocal_helper.nemotron_asr`` ; les sorties du vrai graphe sur
-  30 s, et les mots et balises que l'hôte Python en tire.
+  30 s, puis les mots et balises que l'hôte Python en tire.
 
 Usage (avec le venv de vocal-helper) :
 
