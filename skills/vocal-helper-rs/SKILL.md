@@ -25,11 +25,12 @@ their path.
 | Who spoke when | `NemotronDiar::open(path, latency_s)` then `diarize(&audio, 16_000, threshold)` | `onnx` |
 | Per-speaker activity at 10 ms | `NemotronDiar::probabilities` | `onnx` |
 | Timed words and tags | `NemotronAsr::open(path)` then `transcribe(&audio, 16_000)` | `onnx` |
+| On a GPU, CPU fallback | `open_with(.., Some(&[Provider::Cuda]))`, `VOCAL_HELPER_PROVIDER`, `providers()` | `cuda`, `tensorrt`, `coreml`, `directml`, `openvino` |
 | The pure parts | `mel`, `cache`, `schedule`, `segments`, `asr`, `onnx_meta`, `accel` | none |
 
 ```toml
 [dependencies]
-vocal-helper-rs = { version = "0.1", features = ["onnx"] }
+vocal-helper-rs = { version = "0.2", features = ["onnx"] }   # or "cuda", "coreml"…
 ```
 
 Without `onnx` the crate builds on Rust 1.82 with no native dependency. With
@@ -79,10 +80,12 @@ upstream (`audio-helper-rs`).
 floor (the Python twin against itself with graph optimizations off is 4.4 %
 apart too), not the Rust host: the log-mel matches to 1.3e-6.
 
-**The sessions run on the CPU.** `accel::choose` picks a provider from timings,
-but `NemotronDiar` and `NemotronAsr` do not consult it yet; they open their
-graph on ONNX Runtime's default provider. On Apple Silicon the CPU is also the
-measured winner (CoreML splits the diarization graph into 316 partitions).
+**The provider comes from the caller, then `VOCAL_HELPER_PROVIDER`, then a
+measurement** on the device when more than one provider is compiled in; the
+verdict is kept per graph and per machine. A provider that cannot register (no
+GPU, CUDA 12 instead of 13) prints a warning and falls back, down to the CPU;
+`providers()` says what was kept. On Apple Silicon the CPU is the measured
+winner for diarization (CoreML splits the graph into 316 partitions).
 
 ## Choosing this crate over the Python twin
 

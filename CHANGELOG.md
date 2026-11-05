@@ -6,7 +6,45 @@ All notable changes to `vocal-helper-rs` are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-05
+
+The sessions choose their execution provider. Default behaviour changes: a
+session used to open on ONNX Runtime's CPU default whatever was compiled in;
+it now follows the caller, then `VOCAL_HELPER_PROVIDER`, then a measurement on
+the device.
+
 ### Added
+
+- Features `cuda`, `tensorrt`, `coreml`, `directml` and `openvino`, each
+  implying `onnx` and mapped onto `ort`'s own. `cuda` and `tensorrt` use the
+  CUDA 13 build of ONNX Runtime 1.31.0 that `ort` downloads (cuDNN 9,
+  TensorRT 10, NVIDIA driver 580 or newer); there is no CUDA 12 build to
+  download. The README's "Ubuntu + NVIDIA" section lists the libraries the
+  providers look up, read with `ldd` in CI.
+- `NemotronAsr::open_with(path, providers)` and
+  `NemotronDiar::open_with(path, latency_s, providers)`, with `providers()`
+  saying what each session kept. `open` keeps its signature.
+- Order of authority, as in the Python twin: the `providers` argument, then
+  `VOCAL_HELPER_PROVIDER` (one name or a comma-separated order, the twin's
+  aliases), then, when more than one provider is compiled in, a measurement:
+  5 s warm-up then 30 s of synthetic audio per provider, the fastest kept, the
+  `Verdict` saved under the graph's digest in `$VOCAL_HELPER_RS_CACHE`
+  (default `~/.cache/vocal-helper-rs`). With `onnx` alone nothing is measured.
+- A provider that fails to register (no GPU, wrong CUDA, feature not compiled)
+  is skipped with a warning on stderr; a session that cannot be committed on
+  the providers kept is rebuilt on the CPU alone. Opening never fails for want
+  of an accelerator. An unknown name in `VOCAL_HELPER_PROVIDER` is an error
+  (`SessionError::Accel`, `DiarError::Accel`).
+- `runtime::open_session` (feature `onnx`) and, in `accel`, the pure parts:
+  `Provider::from_name` / `feature` / `is_compiled` / `compiled`,
+  `requested_order`, `parse_order`, the `Registrar` trait with
+  `register_in_order`, `measure`, `graph_digest`, `verdict_dir`,
+  `load_verdict`, `save_verdict`, `PROBE_WARMUP`.
+- `tests/onnx_accel.rs` with a one-node graph fixture: asking for CUDA on a
+  machine without a GPU still opens a session that computes, and the fallback
+  is reported. CI runs it in a second Ubuntu job built with
+  `--features cuda,tensorrt` and `VH_EXPECT_NO_GPU=1`. No GPU inference has
+  been run by this repository: no free runner has one.
 
 - `tests/jumeau_ami.rs`, ignored by default: 20 one-minute AMI clips transcribed
   from Rust and compared with the Python twin's transcripts, kept in
@@ -22,6 +60,9 @@ All notable changes to `vocal-helper-rs` are documented here. The format follows
 
 ### Changed
 
+- `Verdict` gains `tried` (serde default: a 0.1 verdict still reads, and is
+  remeasured) and `still_holds(digest, candidates)`.
+- The crate description names transcription and the providers.
 - The transcription figures are re-measured (2026-11-05, Apple M2 Max, int8):
   4.4 % WER from the Python twin over 20 min of AMI, not 0.86 % (that figure
   came from one minute). The gap is the int8 graph's noise floor, not the Rust

@@ -32,6 +32,7 @@ The graphs are not shipped with the crate; the caller passes their path.
 | Greedy CTC decoding, words, tags | `asr::greedy_ctc`, `asr::tokens_to_words` | none |
 | Read a graph's `metadata_props` without its weights | `onnx_meta::graph_metadata` | none |
 | Pick an execution provider from on-device timings | `choose`, `holds_live`, `Verdict` | none |
+| Run on CUDA, TensorRT, CoreML, DirectML or OpenVINO, CPU fallback | `open_with(.., Some(&[Provider::Cuda]))`, `VOCAL_HELPER_PROVIDER=cuda`, `providers()` | `cuda`, `tensorrt`, `coreml`, `directml`, `openvino` |
 
 Two runnable examples, both behind `onnx`, read a 16 kHz WAV (several channels
 are averaged to mono); `--probs` also writes the raw probabilities as
@@ -52,6 +53,9 @@ and `cargo run --release --features onnx --example transcribe -- <graph.onnx> <c
   "streaming schedule for a latency budget", "greedy CTC decoder in Rust",
   "read ONNX metadata_props without loading the weights", "choose an ONNX
   Runtime execution provider by measuring".
+- **Accelerate**: "diarize on an NVIDIA GPU from Rust", "Rust speech on CUDA /
+  TensorRT", "Ubuntu + NVIDIA, which CUDA for vocal-helper-rs", "CoreML from
+  Rust for speech".
 - **The crate itself**: `cargo add vocal-helper-rs`, `vocal_helper_rs`,
   "the Rust vocal helper", "the Rust port of vocal-helper".
 
@@ -64,9 +68,12 @@ and `cargo run --release --features onnx --example transcribe -- <graph.onnx> <c
 - **A transcript a few percent off the Python twin** is the int8 graph's noise
   floor, not the Rust host: 4.4 % WER over 20 min of AMI, the same as the Python
   twin against itself with graph optimizations off.
-- **The sessions run on the CPU.** `accel` holds the measured-provider policy,
-  but `NemotronDiar` and `NemotronAsr` do not consult it yet: they open their
-  graph on ONNX Runtime's default provider.
+- **A warning on stderr and a session on the CPU** after asking for CUDA on a
+  machine without a GPU, or with CUDA 12 where the prebuilt runtime wants
+  CUDA 13, is the intended fallback, not a failure: `providers()` says what was
+  kept. Only an unknown name in `VOCAL_HELPER_PROVIDER` is an error.
+- **A first open that takes a minute** with several providers compiled in is
+  the one-off measurement; the verdict is kept per graph and per machine.
 
 ## Choosing between the Rust crate and the Python twin
 
@@ -79,7 +86,7 @@ Reach for the **Python `vocal-helper`** for everything else it does: the CLI,
 the HTTP API and MCP tools, the transcript viewer, live microphone sessions, URL
 input, language identification, the rolling summary, the whisper / pyannote /
 NeMo / sherpa engines, the paid paths (Gladia, pyannoteAI), automatic weight
-download and an execution-provider choice applied to the sessions.
+download.
 
 ## When NOT to use vocal-helper-rs (SKIP)
 

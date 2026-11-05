@@ -41,7 +41,7 @@ encore écrit est nommé comme tel plutôt que sous-entendu.
 | `cache` | la tenue du cache de locuteurs et de la file d'un pas à l'autre | **fait**, parité prouvée |
 | `schedule` | le calendrier de flux et les deux plafonds qui le bornent | **fait**, parité prouvée |
 | `segments` | des probabilités par trame aux tours de parole | **fait**, parité prouvée |
-| `accel` | choisir un moteur d'exécution d'après des mesures prises sur l'appareil | **politique faite**, testée ; pas encore appliquée par les sessions, qui tournent sur le CPU par défaut d'ONNX Runtime |
+| `accel` | choisir un moteur d'exécution d'après des mesures prises sur l'appareil | **fait** et appliqué par les deux sessions : l'appelant, puis `VOCAL_HELPER_PROVIDER`, puis une mesure sur l'appareil ; repli sur le CPU avec un avertissement ; features `cuda`, `tensorrt`, `coreml`, `directml`, `openvino` |
 | `asr` | l'hôte de la transcription Nemotron 3.5 : front-end NeMo, fenêtres, CTC glouton, mots horodatés, balises de locuteur et d'événement | **fait**, parité prouvée sur les métadonnées et les sorties du vrai graphe |
 | `onnx_meta` | lire les `metadata_props` d'un graphe sans charger ses poids | **fait** |
 | liaison ONNX Runtime | piloter le graphe lui-même, par `ort`, derrière la feature `onnx` | **transcription faite** (`asr_session`, `examples/transcribe.rs` ; 4,4 % de WER d'écart au jumeau Python en int8 sur 20 min d'AMI, soit le bruit propre au graphe int8 (le jumeau Python contre lui-même, optimisations du graphe coupées : 4,4 %) ; mel identique à 1,3e-6 près ; RTF 0,05 sur CPU contre 0,022 à 0,028 pour le jumeau Python ; mesuré le 2026-11-05 sur un Apple M2 Max, `tests/jumeau_ami.rs`) ; **diarisation faite** (`diar_session`, `examples/diarize.rs` ; probabilités à 1,7e-6 du jumeau Python sur 3 min d'AMI, compression du cache comprise ; 1,9e-6 sur une autre minute d'AMI, remesuré pour cette version) |
@@ -72,13 +72,26 @@ basculent. `scripts/make_ami_jumeau.py` réécrit la fixture.
 
 ```toml
 [dependencies]
-vocal-helper-rs = { version = "0.1", features = ["onnx"] }
+vocal-helper-rs = { version = "0.2", features = ["onnx"] }
 ```
 
 Sans `onnx`, la caisse se réduit à sa partie pure (front-ends, cache, calendrier, segments,
 décodage CTC) : elle se compile en Rust 1.82 sans aucune dépendance native. Avec `onnx`, elle tire
 `ort` 2.0.0-rc.15, qui demande Rust 1.92 et télécharge un ONNX Runtime précompilé à la
 compilation.
+
+Une feature par moteur d'exécution, chacune impliquant `onnx`, chacune liée aux runtimes
+précompilés qu'`ort` sait télécharger : une feature compilée hors de sa plateforme échoue dans le
+script de compilation d'`ort-sys`, pas à l'exécution.
+
+| feature | moteur | plateformes dotées d'un runtime précompilé |
+|---|---|---|
+| `onnx` | CPU seul | toutes |
+| `cuda` | CUDA 13 + cuDNN 9 | Linux x86_64 et aarch64, Windows x86_64 |
+| `tensorrt` | TensorRT 10, puis CUDA | comme `cuda` (même téléchargement) |
+| `coreml` | CoreML | macOS, iOS |
+| `directml` | DirectML | Windows |
+| `openvino` | OpenVINO | Linux x86_64, Windows x86_64 ; pas avec `cuda` |
 
 **Les graphes ne sont pas livrés avec la caisse**, ils pèsent des centaines de mégaoctets : on
 passe leur chemin. Le graphe de diarisation est l'export ONNX en un fichier de
@@ -152,12 +165,72 @@ opérateurs donc du modèle : c'est précisément l'erreur qu'un ordre codé en 
 
 La politique est pure — pas de modèle, pas de réseau, pas d'ONNX — donc entièrement testable.
 
-**Ce que cette version ne fait pas encore** : les sessions ne consultent pas cette politique.
-`NemotronDiar` et `NemotronAsr` ouvrent leur graphe sur le moteur par défaut d'ONNX Runtime, le
-CPU, qui est aussi le gagnant mesuré plus haut sur Apple Silicon. Chronométrer les moteurs sur
-l'appareil, l'échelle explicite du jumeau Python (le moteur que l'appelant nomme, puis
-`VOCAL_HELPER_PROVIDER`, puis le verdict mesuré) et l'erreur sur un nom inconnu sont la suite du
-travail, pas une fonction de la caisse aujourd'hui.
+Les deux sessions l'appliquent, dans l'ordre d'autorité du jumeau Python :
+
+1. l'argument `providers` de `NemotronAsr::open_with` ou de `NemotronDiar::open_with` ;
+2. sinon `VOCAL_HELPER_PROVIDER` : un nom (`cuda`, `tensorrt`, `coreml`, `directml`, `openvino`,
+   `cpu`…) ou un ordre (`tensorrt,cuda`). Un nom inconnu est une erreur : une faute de frappe ne
+   doit pas passer pour CUDA pendant que le CPU tourne ;
+3. sinon, quand plus d'un moteur est compilé, une **mesure sur l'appareil** : chacun reçoit 5 s
+   de chauffe puis 30 s d'audio synthétique chronométrées, le plus rapide gagne, puis le
+   `Verdict` est gardé sous l'empreinte du graphe dans `$VOCAL_HELPER_RS_CACHE` (par défaut
+   `~/.cache/vocal-helper-rs`). Avec `onnx` seul, seul le CPU est compilé : rien n'est mesuré.
+
+La mesure se paie une fois par graphe et par machine ; elle n'est pas gratuite pour autant : sur un M2 Max
+avec `coreml`, la première ouverture du graphe de diarisation a pris une minute environ ; elle a
+retrouvé ce qui est écrit plus haut (CPU 0,74 contre CoreML 1,12 sur cette passe). Pour le graphe
+ASR, les deux se valaient (0,084 contre 0,086). Épingler un moteur évite la mesure.
+
+Un moteur qui échoue à s'enregistrer — pas de GPU, mauvaise version de CUDA, feature absente — est
+sauté avec un avertissement sur la sortie d'erreur, puis le suivant est essayé ; le CPU ferme
+toujours la marche. Une session qui ne se construit pas sur les moteurs retenus est reconstruite
+sur le CPU seul. L'ouverture n'échoue jamais faute d'accélérateur. À la différence du jumeau
+Python, un moteur connu mais absent de la compilation est sauté avec cet avertissement plutôt que
+refusé.
+
+## Ubuntu + NVIDIA
+
+```toml
+vocal-helper-rs = { version = "0.2", features = ["cuda"] }        # ou "tensorrt"
+```
+
+`ort` 2.0.0-rc.15 télécharge **ONNX Runtime 1.31.0** construit par pyke pour **CUDA 13 seulement** :
+il n'existe pas de construction CUDA 12 à télécharger (`ORT_CUDA_VERSION=12` fait échouer la
+compilation plutôt que de se rabattre). ONNX Runtime est lié statiquement dans le binaire ; les
+moteurs restent des bibliothèques à part, que `cargo build` lie à côté dans `target/<profil>/` :
+`libonnxruntime_providers_shared.so`, `libonnxruntime_providers_cuda.so` puis, pour `tensorrt`,
+`libonnxruntime_providers_tensorrt.so`. **Livrez-les à côté de l'exécutable.**
+
+Ce dont la machine a besoin, lu par `ldd` sur ces bibliothèques dans la CI de ce dépôt :
+
+| feature | bibliothèques cherchées à l'exécution | d'où |
+|---|---|---|
+| `cuda` | `libcuda.so.1` | le pilote NVIDIA, branche 580 ou plus récente (ce que CUDA 13 exige) |
+| `cuda` | `libcudart.so.13`, `libcublas.so.13`, `libcublasLt.so.13`, `libcurand.so.10` | les bibliothèques d'exécution de CUDA 13 |
+| `cuda` | `libcudnn.so.9` et ses sous-bibliothèques | cuDNN 9 construit pour CUDA 13 (exigé par la liste de préchargement d'`ort`, sans être un lien direct du moteur CUDA) |
+| `tensorrt` | `libnvinfer.so.10`, `libnvonnxparser.so.10` | TensorRT 10 pour CUDA 13 |
+
+Sur Ubuntu avec le dépôt apt de NVIDIA, `sudo apt install cuda-libraries-13-0 libcudnn9-cuda-13`
+couvre `cuda` (ajouter `tensorrt` pour le moteur TensorRT). Pour vérifier une machine :
+
+```sh
+nvidia-smi                                   # pilote chargé, « CUDA Version: 13.x » ou plus
+ldconfig -p | grep -E 'libcudart.so.13|libcublas.so.13|libcudnn.so.9'
+ldd target/release/libonnxruntime_providers_cuda.so | grep 'not found'   # ne doit rien afficher
+VOCAL_HELPER_PROVIDER=cuda cargo run --release --features cuda --example transcribe -- graphe.onnx clip.wav
+```
+
+La dernière ligne affiche `moteurs [Cuda, Cpu]` quand CUDA tourne vraiment. **Rien n'est perdu
+quand il ne tourne pas** : un moteur qui échoue à s'enregistrer (pas de GPU, pilote trop ancien,
+bibliothèques CUDA 12, cuDNN absent) est sauté avec une ligne sur la sortie d'erreur qui cite
+l'erreur d'ONNX Runtime lui-même, puis la session s'ouvre sur le CPU. `providers()` dit, sur
+chacune des deux sessions, ce qui a été retenu.
+
+**Ce qui est vérifié, ce qui ne l'est pas.** La CI compile et teste la caisse sur `ubuntu-latest`
+avec `--features cuda,tensorrt` : la construction CUDA d'ONNX Runtime est téléchargée puis liée,
+et chaque session retombe sur le CPU sur ce runner, qui n'a pas de GPU. Aucun runner gratuit n'en
+a : **l'inférence sur un vrai GPU NVIDIA n'a pas été lancée par ce dépôt**. Les noms de
+bibliothèques ci-dessus viennent des bibliothèques elles-mêmes, pas de cette exécution.
 
 
 ## D'où viennent ces chiffres

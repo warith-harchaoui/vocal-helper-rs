@@ -34,7 +34,9 @@ there.
 
 - `open(path: &Path) -> Result<Self, SessionError>`: settings and vocabulary
   come from the graph's metadata (contract `nemotron-asr-ctc-1`).
-- `settings() -> &AsrSettings`, `path() -> &Path`.
+- `open_with(path, providers: Option<&[Provider]>)`: the same, on these
+  providers in this order (see below).
+- `settings() -> &AsrSettings`, `path() -> &Path`, `providers() -> &[Provider]`.
 - `frames(&mut self, audio, sample_rate) -> Result<Frames, SessionError>`: per
   40 ms frame, the token, its log-probability and the blank's
   (`Frames = (Vec<i32>, Vec<f32>, Vec<f32>)`), over independent 30 s windows.
@@ -42,10 +44,24 @@ there.
 - `Transcript { words: Vec<Word>, tags: Vec<Tag>, speech: Vec<f32> }`, with
   `text()` joining the words by spaces; `speech` is the speech probability
   every 40 ms.
-- `SessionError`: `Meta`, `Asr` (metadata out of contract), `Mel`, `Ort`.
+- `SessionError`: `Meta`, `Asr` (metadata out of contract), `Mel`, `Ort`,
+  `Accel` (unknown name in `VOCAL_HELPER_PROVIDER`).
 
-Both sessions open their graph on ONNX Runtime's default provider, the CPU.
-They do not consult `accel` yet.
+`NemotronDiar` has the same `open_with(path, latency_s, providers)` and
+`providers()`; `DiarError` gains `Accel` too. Both decide the provider in this
+order: the `providers` argument, then `VOCAL_HELPER_PROVIDER` (one name or a
+comma-separated order), then a measurement on the device when more than one
+provider is compiled in (5 s warm-up, then 30 s timed, verdict kept per graph
+digest in `$VOCAL_HELPER_RS_CACHE`, `$XDG_CACHE_HOME/vocal-helper-rs` or
+`~/.cache/vocal-helper-rs`). A provider that does not register is skipped with
+a warning on stderr; the CPU always closes the list.
+
+### `runtime` (feature `onnx`)
+
+`open_session(&Environment, path, order: &[Provider]) -> ort::Result<Opened>`;
+`Opened { session, providers, warnings }`. Registers the providers in order,
+skips the ones that fail, rebuilds on the CPU alone if the session cannot be
+committed on them. Fails only if the CPU cannot open the graph.
 
 ## Pure modules (no feature)
 
@@ -95,13 +111,25 @@ from the protobuf), `base64_decode`, `base64_f32le`. `MetaError`: `Io`, `Format`
 
 ### `accel`: the provider policy
 
+Feature flags, each implying `onnx`: `cuda` (CUDA 13 + cuDNN 9, Linux and
+Windows), `tensorrt` (adds TensorRT 10), `coreml` (Apple), `directml`
+(Windows), `openvino` (Intel, not together with `cuda`).
+
 `Provider` (`Cpu`, `CoreMl`, `Cuda`, `TensorRt`, `DirectMl`, `Nnapi`, `Qnn`,
 `OpenVino`) with `as_str` and `candidates()` (the order to try on this
 platform); `Timing { provider, real_time_factor }`; `Verdict { chosen, timings,
 graph_digest }` with `real_time_factor` and `applies_to(digest)`;
 `choose(&[Timing]) -> Option<Provider>` (the fastest measured, `None` without
 measurements); `holds_live(stage_rtf, other_rtf_same_unit)`; `PROBE_AUDIO`
-(30 s). Pure policy: nothing here times a provider or opens a session.
+(30 s), `PROBE_WARMUP` (5 s).
+`Provider::from_name` (the Python twin's aliases), `feature`, `is_compiled`,
+`compiled()`; `PROVIDER_ENV`, `CACHE_ENV`; `requested_order`, `parse_order`
+(`AccelError::UnknownName`); the `Registrar` trait and
+`register_in_order(order, &mut registrar) -> Registration { active, warnings }`;
+`measure(candidates, audio_s, open, time)`; `graph_digest(path)` (FNV-1a over
+the size, the first and the last MiB); `verdict_dir`, `load_verdict`,
+`save_verdict`; `Verdict` also carries `tried` and `still_holds(digest,
+candidates)`. All pure: nothing in `accel` opens a session.
 
 ## Examples (feature `onnx`)
 

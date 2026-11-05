@@ -1,9 +1,11 @@
 # Portage Rust de https://github.com/warith-harchaoui/vocal-helper (Python).
 #
-# Portée v0.1 : les chemins Nemotron gratuits et locaux, diarisation en flux
+# Portée : les chemins Nemotron gratuits et locaux, diarisation en flux
 # (Nemotron 3) et transcription (Nemotron 3.5) — front-end log-mel, tenue du
 # cache de locuteurs et de la file, calendrier et ses deux plafonds, décodage
-# CTC ; enfin la liaison à ONNX Runtime derrière la feature `onnx`. Les chemins
+# CTC ; enfin la liaison à ONNX Runtime derrière la feature `onnx`, et depuis la
+# 0.2 le choix du moteur d'exécution (CUDA, TensorRT, CoreML, DirectML, OpenVINO)
+# derrière une feature chacun, mesuré sur l'appareil, CPU en repli. Les chemins
 # payants (Gladia, pyannoteAI) ne sont pas écrits ; le README le dit plutôt que
 # de laisser croire.
 #
@@ -13,7 +15,7 @@
 # binaire unique par plateforme.
 [package]
 name = "vocal-helper-rs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 # Vérifié et non supposé : `cargo test` passe sur 1.82.0 (rustc lu dans
 # target/.rustc_info.json) comme sur 1.95.0. Le plancher est fixé par
