@@ -24,6 +24,17 @@ cargo test --all
 echo "pre-push: cargo clippy --all-targets --features onnx -- -D warnings"
 cargo clippy --all-targets --features onnx -- -D warnings
 
+# The accelerator features need a prebuilt ONNX Runtime per platform, so each
+# is gated where it can be built: `cuda` and `tensorrt` in CI (Ubuntu, CPU
+# fallback, no GPU), `coreml` here on a Mac, including the test that registers
+# CoreML for real.
+if [ "$(uname -s)" = "Darwin" ]; then
+  echo "pre-push: cargo clippy --all-targets --features coreml -- -D warnings"
+  cargo clippy --all-targets --features coreml -- -D warnings
+  echo "pre-push: cargo test --features coreml --test onnx_accel"
+  cargo test --features coreml --test onnx_accel
+fi
+
 # The three checks above build against the committed Cargo.lock and therefore
 # cannot see a dependency range that has gone bad for everyone downstream.
 echo "pre-push: fresh resolve (no Cargo.lock)"

@@ -10,6 +10,7 @@ use ort::session::Session;
 use ort::value::Tensor;
 use thiserror::Error;
 
+use crate::accel::{AccelError, Provider};
 use crate::cache::{streaming_update, StreamingState};
 use crate::mel::{log_mel, MelError, MelSettings};
 use crate::onnx_meta::{base64_f32le, graph_metadata, MetaError};
@@ -31,6 +32,9 @@ pub enum DiarError {
     /// ONNX Runtime a échoué.
     #[error("onnxruntime : {0}")]
     Ort(#[from] ort::Error),
+    /// `VOCAL_HELPER_PROVIDER` nomme un moteur inconnu.
+    #[error(transparent)]
+    Accel(#[from] AccelError),
 }
 
 /// Une session ouverte sur le graphe de diarisation.
@@ -38,6 +42,7 @@ pub struct NemotronDiar {
     schedule: Schedule,
     silence: Vec<f32>,
     session: Session,
+    providers: Vec<Provider>,
     _environment: ort::environment::Environment,
 }
 
@@ -48,11 +53,33 @@ impl NemotronDiar {
     /// séquence que le graphe accepte : il est **toujours** remplacé, comme dans
     /// le jumeau Python.
     ///
+    /// Le moteur d'exécution suit l'ordre d'autorité de [`crate::accel`] ; voir
+    /// [`Self::open_with`].
+    ///
     /// # Erreurs
     ///
     /// [`DiarError`] si le graphe est illisible, sans empreinte de silence, voire
-    /// si ONNX Runtime refuse de l'ouvrir.
+    /// si ONNX Runtime refuse de l'ouvrir même sur le CPU.
     pub fn open(path: &Path, latency_s: Option<f64>) -> Result<Self, DiarError> {
+        Self::open_with(path, latency_s, None)
+    }
+
+    /// Ouvrir le graphe sur les moteurs `providers`, dans cet ordre.
+    ///
+    /// `None` (ou une liste vide) laisse décider `VOCAL_HELPER_PROVIDER` puis la
+    /// mesure sur l'appareil. Un moteur qui ne s'enregistre pas est sauté avec
+    /// un avertissement : la session s'ouvre toujours, au pire sur le CPU.
+    ///
+    /// # Erreurs
+    ///
+    /// [`DiarError`] si le graphe est illisible, sans empreinte de silence, si
+    /// `VOCAL_HELPER_PROVIDER` nomme un moteur inconnu, voire si ONNX Runtime
+    /// refuse de l'ouvrir même sur le CPU.
+    pub fn open_with(
+        path: &Path,
+        latency_s: Option<f64>,
+        providers: Option<&[Provider]>,
+    ) -> Result<Self, DiarError> {
         let meta = graph_metadata(path)?;
         let schedule = Schedule::from_metadata(&meta).within(latency_s);
         if !schedule.fits() {
@@ -76,13 +103,26 @@ impl NemotronDiar {
             )));
         }
         let environment = ort::init().with_name("vocal-helper-rs").build()?;
-        let session = Session::builder(&environment)?.commit_from_file(path)?;
-        Ok(Self {
-            schedule,
-            silence,
-            session,
-            _environment: environment,
-        })
+        let (mut diar, active) = crate::runtime::open_accelerated(
+            &environment,
+            path,
+            providers,
+            |session| Self {
+                schedule,
+                silence: silence.clone(),
+                session,
+                providers: Vec::new(),
+                _environment: environment.clone(),
+            },
+            |diar: &mut Self, audio: &[f32]| diar.probabilities(audio, 16_000).map(|_| ()),
+        )?;
+        diar.providers = active;
+        Ok(diar)
+    }
+
+    /// Les moteurs que la session a retenus, dans l'ordre ; le CPU en dernier.
+    pub fn providers(&self) -> &[Provider] {
+        &self.providers
     }
 
     /// Le calendrier effectif.

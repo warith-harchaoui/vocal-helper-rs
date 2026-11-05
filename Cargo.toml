@@ -20,11 +20,11 @@ edition = "2021"
 # `std::iter::repeat_n`, stable depuis 1.82.
 rust-version = "1.82"
 license = "BSD-3-Clause"
-description = "Portage Rust de vocal-helper : diarisation de la parole en flux, sans Python."
+description = "Portage Rust de vocal-helper : diarisation de la parole en flux et transcription, sans Python, sur CPU, CUDA, TensorRT, CoreML ou DirectML."
 repository = "https://github.com/warith-harchaoui/vocal-helper-rs"
 homepage = "https://deraison.ai/ai-helpers/"
 readme = "README.md"
-keywords = ["diarization", "speech", "onnx", "streaming", "audio"]
+keywords = ["diarization", "transcription", "speech", "onnx", "cuda"]
 categories = ["multimedia::audio", "science"]
 exclude = ["tests/fixtures/*"]
 
@@ -46,6 +46,23 @@ ort = { version = "=2.0.0-rc.15", optional = true }
 [features]
 default = []
 onnx = ["dep:ort"]
+# Les moteurs d'exécution, un par feature, chacun impliquant `onnx`. Ils
+# s'appuient sur les binaires préconstruits qu'`ort` télécharge (ONNX Runtime
+# 1.31.0), qui n'existent que pour certaines cibles : une feature compilée hors
+# de sa plateforme échoue au build d'`ort-sys`, pas à l'exécution. Le détail
+# (CUDA 13, cuDNN 9, pilote) est dans le README, section « Ubuntu + NVIDIA ».
+#
+# Linux x86_64 / aarch64 et Windows x86_64, NVIDIA : CUDA 13 + cuDNN 9.
+cuda = ["onnx", "ort/cuda"]
+# TensorRT en plus de CUDA ; même binaire préconstruit que `cuda`.
+tensorrt = ["cuda", "ort/tensorrt"]
+# macOS et iOS.
+coreml = ["onnx", "ort/coreml"]
+# Windows, tout GPU DirectX 12.
+directml = ["onnx", "ort/directml"]
+# Intel, Linux x86_64 et Windows x86_64. Exclusive de `cuda` : aucun binaire
+# préconstruit ne porte les deux.
+openvino = ["onnx", "ort/openvino"]
 
 [dev-dependencies]
 serde_json = "1.0"

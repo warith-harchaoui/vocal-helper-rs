@@ -53,8 +53,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let seconds = mono.len() as f64 / f64::from(spec.sample_rate);
     eprintln!(
-        "{} tours ; {seconds:.1} s d'audio en {elapsed:.2} s (RTF {:.3})",
+        "{} tours ; moteurs {:?} ; {seconds:.1} s d'audio en {elapsed:.2} s (RTF {:.3})",
         segments.len(),
+        diar.providers(),
         elapsed / seconds
     );
     Ok(())

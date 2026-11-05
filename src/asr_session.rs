@@ -10,6 +10,7 @@ use ort::session::Session;
 use ort::value::Tensor;
 use thiserror::Error;
 
+use crate::accel::{AccelError, Provider};
 use crate::asr::{
     greedy_ctc, log_mel, normalize_per_feature, plan_windows, speech_probability, tokens_to_words,
     AsrError, AsrSettings, Tag, Word,
@@ -32,6 +33,9 @@ pub enum SessionError {
     /// ONNX Runtime a échoué.
     #[error("onnxruntime : {0}")]
     Ort(#[from] ort::Error),
+    /// `VOCAL_HELPER_PROVIDER` nomme un moteur inconnu.
+    #[error(transparent)]
+    Accel(#[from] AccelError),
 }
 
 /// Par trame de 40 ms : jeton, sa log-probabilité, celle du blanc.
@@ -64,26 +68,60 @@ pub struct NemotronAsr {
     settings: AsrSettings,
     session: Session,
     path: PathBuf,
+    providers: Vec<Provider>,
     _environment: ort::environment::Environment,
 }
 
 impl NemotronAsr {
     /// Ouvrir le graphe ; les réglages viennent de ses métadonnées.
     ///
+    /// Le moteur d'exécution suit l'ordre d'autorité de [`crate::accel`] :
+    /// `VOCAL_HELPER_PROVIDER`, sinon la mesure sur l'appareil (seulement si
+    /// plus d'un moteur est compilé), sinon le CPU. Voir [`Self::open_with`].
+    ///
     /// # Erreurs
     ///
     /// [`SessionError`] si le graphe est illisible ou hors contrat, voire si ONNX
-    /// Runtime refuse de l'ouvrir.
+    /// Runtime refuse de l'ouvrir même sur le CPU.
     pub fn open(path: &Path) -> Result<Self, SessionError> {
+        Self::open_with(path, None)
+    }
+
+    /// Ouvrir le graphe sur les moteurs `providers`, dans cet ordre.
+    ///
+    /// `None` (ou une liste vide) laisse décider `VOCAL_HELPER_PROVIDER` puis la
+    /// mesure. Un moteur qui ne s'enregistre pas — pas de GPU, mauvaise version
+    /// de CUDA — est sauté avec un avertissement : la session s'ouvre toujours,
+    /// au pire sur le CPU. [`Self::providers`] dit ce qui a été retenu.
+    ///
+    /// # Erreurs
+    ///
+    /// [`SessionError`] si le graphe est illisible ou hors contrat, si
+    /// `VOCAL_HELPER_PROVIDER` nomme un moteur inconnu, voire si ONNX Runtime
+    /// refuse de l'ouvrir même sur le CPU.
+    pub fn open_with(path: &Path, providers: Option<&[Provider]>) -> Result<Self, SessionError> {
         let settings = AsrSettings::from_metadata(&graph_metadata(path)?)?;
         let environment = ort::init().with_name("vocal-helper-rs").build()?;
-        let session = Session::builder(&environment)?.commit_from_file(path)?;
-        Ok(Self {
-            settings,
-            session,
-            path: path.to_owned(),
-            _environment: environment,
-        })
+        let (mut asr, active) = crate::runtime::open_accelerated(
+            &environment,
+            path,
+            providers,
+            |session| Self {
+                settings: settings.clone(),
+                session,
+                path: path.to_owned(),
+                providers: Vec::new(),
+                _environment: environment.clone(),
+            },
+            |asr: &mut Self, audio: &[f32]| asr.frames(audio, 16_000).map(|_| ()),
+        )?;
+        asr.providers = active;
+        Ok(asr)
+    }
+
+    /// Les moteurs que la session a retenus, dans l'ordre ; le CPU en dernier.
+    pub fn providers(&self) -> &[Provider] {
+        &self.providers
     }
 
     /// Les réglages lus dans le graphe.

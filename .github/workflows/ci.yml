@@ -1,6 +1,6 @@
 name: CI
 
-# Deliberately light: one Linux job, nothing else. The same four gates run in
+# Deliberately light: two Linux jobs, nothing else. The same four gates run in
 # `.githooks/pre-push` before a push can leave the machine, so by the time this
 # workflow starts everything in it has already passed once — CI is the
 # confirmation, not the first run.
@@ -60,3 +60,44 @@ jobs:
       # resolve closes that blind spot.
       - name: Fresh resolve (no Cargo.lock — what a downstream consumer gets)
         run: ./scripts/check-fresh-resolve.sh
+
+  # The `cuda` and `tensorrt` features on a runner with no GPU: ort downloads the
+  # CUDA 13 build of ONNX Runtime, the crate must compile against it, and every
+  # session must still open on the CPU with a warning. This proves the build and
+  # the fallback on Ubuntu; it proves NOTHING about running on a GPU, which no
+  # free GitHub runner has.
+  cuda:
+    name: cuda + tensorrt build, CPU fallback
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VH_EXPECT_NO_GPU: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust (stable + clippy)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo registry + build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: cuda
+
+      - name: Clippy with cuda + tensorrt (warnings are errors)
+        run: cargo clippy --all-targets --features cuda,tensorrt -- -D warnings
+
+      - name: Tests with cuda + tensorrt compiled in, no GPU (must fall back to CPU)
+        run: cargo test --features cuda,tensorrt
+
+      # What a deployed binary must ship next to itself, and which CUDA / cuDNN /
+      # TensorRT sonames the provider libraries ask for: the README's
+      # "Ubuntu + NVIDIA" section is written from this output.
+      - name: Provider libraries and their NVIDIA dependencies
+        run: |
+          ls -l target/debug/ | grep -E 'libonnxruntime.*\.so'
+          for lib in target/debug/libonnxruntime_providers_cuda.so target/debug/libonnxruntime_providers_tensorrt.so; do
+            echo "== $lib"
+            ldd "$lib" | grep -E 'cuda|cudnn|cublas|cufft|curand|nvrtc|nvinfer|nvonnx|not found' | sort -u
+          done

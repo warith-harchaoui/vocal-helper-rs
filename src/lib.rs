@@ -44,9 +44,11 @@
 //! optimisations du graphe coupées, s'écarte d'autant). Les graphes ne sont pas
 //! distribués avec la caisse : on passe leur chemin.
 //!
-//! Les sessions s'ouvrent sur le moteur par défaut d'ONNX Runtime, le CPU. La
-//! politique de [`accel`] (choisir le moteur sur une mesure) est écrite et
-//! testée, mais pas encore branchée sur les sessions.
+//! Les sessions choisissent leur moteur d'exécution par [`accel`] : l'argument
+//! `providers`, sinon `VOCAL_HELPER_PROVIDER`, sinon une mesure sur l'appareil
+//! dès que plus d'un moteur est compilé (features `cuda`, `tensorrt`, `coreml`,
+//! `directml`, `openvino`). Un moteur qui refuse de s'enregistrer est sauté
+//! avec un avertissement ; le CPU ferme toujours la marche.
 //!
 //! Les chemins payants (Gladia, pyannoteAI) ne sont pas écrits.
 
@@ -62,10 +64,12 @@ pub mod cache;
 pub mod diar_session;
 pub mod mel;
 pub mod onnx_meta;
+#[cfg(feature = "onnx")]
+pub mod runtime;
 pub mod schedule;
 pub mod segments;
 
-pub use accel::{choose, holds_live, Provider, Timing, Verdict};
+pub use accel::{choose, holds_live, AccelError, Provider, Timing, Verdict, PROVIDER_ENV};
 pub use cache::{
     boost_top_scores, compress_cache, disable_low_scores, log_pred_scores, streaming_update, Slot,
     StreamingState,

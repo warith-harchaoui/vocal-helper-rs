@@ -2,6 +2,7 @@
 //!
 //! ```sh
 //! cargo run --release --features onnx --example transcribe -- <graphe.onnx> <audio.wav>
+//! # sur Ubuntu + NVIDIA : --features cuda ; VOCAL_HELPER_PROVIDER=cuda pour épingler
 //! ```
 
 use std::path::Path;
@@ -42,9 +43,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let seconds = mono.len() as f64 / f64::from(spec.sample_rate);
     println!("{}", transcript.text());
     eprintln!(
-        "{} mots, {} balises ; ouverture {opened:.1} s, {seconds:.1} s d'audio en {elapsed:.2} s (RTF {:.3})",
+        "{} mots, {} balises ; moteurs {:?} ; ouverture {opened:.1} s, {seconds:.1} s d'audio en {elapsed:.2} s (RTF {:.3})",
         transcript.words.len(),
         transcript.tags.len(),
+        asr.providers(),
         elapsed / seconds
     );
     Ok(())
