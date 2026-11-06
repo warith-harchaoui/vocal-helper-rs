@@ -46,7 +46,7 @@ written yet is named as such rather than implied.
 | paid paths | Gladia and pyannoteAI, batch and live | not written |
 
 ```sh
-cargo test                                  # 93 tests, parity included
+cargo test                                  # 116 tests, parity included
 cargo clippy --all-targets -- -D warnings
 ```
 

@@ -48,7 +48,7 @@ encore écrit est nommé comme tel plutôt que sous-entendu.
 | chemins payants | Gladia et pyannoteAI, en lot et en direct | pas écrits |
 
 ```sh
-cargo test                                  # 93 tests, parité comprise
+cargo test                                  # 116 tests, parité comprise
 cargo clippy --all-targets -- -D warnings
 ```
 
